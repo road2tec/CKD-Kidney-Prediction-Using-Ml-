@@ -1,0 +1,38 @@
+# Dependencies
+node_modules/
+.venv/
+venv/
+__pycache__/
+*.pyc
+*.pyo
+
+# Environment files
+.env
+*.env.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Build outputs
+build/
+dist/
+*.egg-info/
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# ML model files (generated)
+backend/ml/model.pkl
+backend/ml/vectorizer.pkl
+backend/ml/label_encoder.pkl
+
+# Package lock (optional to include)
+# package-lock.json
