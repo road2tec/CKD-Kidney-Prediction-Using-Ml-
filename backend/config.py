@@ -10,8 +10,8 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # MongoDB Configuration - from .env
-MONGO_URI = os.getenv('MONGO_URI', 'mongodb://localhost:27017/smart_healthcare_system')
-DATABASE_NAME = os.getenv('DATABASE_NAME', 'smart_healthcare_system')
+MONGO_URI = os.getenv('MONGO_URI', 'mongodb://localhost:27017/Chronic_Kidney_Disease')
+DATABASE_NAME = os.getenv('DATABASE_NAME', 'Chronic_Kidney_Disease')
 
 # Collection Names
 COLLECTIONS = {
@@ -46,6 +46,10 @@ CORS_ORIGINS = [origin.strip() for origin in cors_origins.split(',')]
 MODEL_PATH = os.path.join(os.path.dirname(__file__), 'ml', 'model.pkl')
 VECTORIZER_PATH = os.path.join(os.path.dirname(__file__), 'ml', 'vectorizer.pkl')
 LABEL_ENCODER_PATH = os.path.join(os.path.dirname(__file__), 'ml', 'label_encoder.pkl')
+
+# Gemini AI Configuration - from .env
+GEMINI_API_KEY = os.getenv('GEMINI_API_KEY', '')
+GEMINI_MODEL = os.getenv('GEMINI_MODEL', 'gemini-pro')
 
 # Doctor Specializations mapping to diseases
 DISEASE_TO_SPECIALIZATION = {

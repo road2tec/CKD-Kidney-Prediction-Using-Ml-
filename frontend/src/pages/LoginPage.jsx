@@ -48,7 +48,7 @@ const LoginPage = () => {
                     <div className="auth-brand">
                         <Link to="/" className="logo">
                             <FaHeartbeat className="logo-icon" />
-                            <span>SmartHealth</span>
+                            <span>CKD Predictor</span>
                         </Link>
                     </div>
                     <div className="auth-illustration">

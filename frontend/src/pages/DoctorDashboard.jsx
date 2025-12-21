@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Routes, Route, Link, useNavigate } from 'react-router-dom';
-import { FaHeartbeat, FaCalendarAlt, FaUsers, FaCheck, FaTimes, FaSignOutAlt, FaUser, FaClock, FaChartBar } from 'react-icons/fa';
+import { FaHeartbeat, FaCalendarAlt, FaUsers, FaCheck, FaTimes, FaSignOutAlt, FaUser, FaClock, FaChartBar, FaVideo, FaPhoneAlt } from 'react-icons/fa';
 import { toast } from 'react-toastify';
 import axios from 'axios';
 import { useAuth, API_URL } from '../App';
 import './Dashboard.css';
+import VideoCall from '../components/VideoCall';
 
 // Appointments Component
 const DoctorAppointments = () => {
@@ -190,7 +191,137 @@ const DoctorStats = () => {
     );
 };
 
+// Telemedicine Component for Doctors
+const DoctorTelemedicine = () => {
+    const [sessions, setSessions] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [activeCall, setActiveCall] = useState(null);
+    const { getToken, user } = useAuth();
+
+    useEffect(() => {
+        fetchSessions();
+    }, []);
+
+    const fetchSessions = async () => {
+        try {
+            const response = await axios.get(`${API_URL}/telemedicine/my-sessions`,
+                { headers: { Authorization: `Bearer ${getToken()}` } }
+            );
+            if (response.data.success) setSessions(response.data.sessions || []);
+        } catch (error) {
+            console.error('Failed to fetch telemedicine sessions:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const joinVideoCall = (session) => {
+        axios.put(`${API_URL}/telemedicine/session/${session._id}/update-status`,
+            { status: 'active' },
+            { headers: { Authorization: `Bearer ${getToken()}` } }
+        ).catch(console.error);
+
+        setActiveCall({
+            sessionId: session._id,
+            token: getToken(),
+            patientInfo: {
+                name: session.patient_name || 'Patient',
+                age: session.patient_age,
+                blood_group: session.patient_blood_group
+            }
+        });
+    };
+
+    const handleCallEnd = () => {
+        if (activeCall) {
+            axios.put(`${API_URL}/telemedicine/session/${activeCall.sessionId}/update-status`,
+                { status: 'completed' },
+                { headers: { Authorization: `Bearer ${getToken()}` } }
+            ).catch(console.error);
+        }
+        setActiveCall(null);
+        fetchSessions();
+        toast.info('Consultation ended');
+    };
+
+    if (activeCall) {
+        return (
+            <VideoCall
+                sessionId={activeCall.sessionId}
+                token={activeCall.token}
+                userType="doctor"
+                patientInfo={activeCall.patientInfo}
+                onCallEnd={handleCallEnd}
+            />
+        );
+    }
+
+    if (loading) return <div className="loading-overlay"><div className="spinner"></div></div>;
+
+    return (
+        <div className="page-content animate-fadeIn">
+            <div className="page-header">
+                <h1><FaVideo /> Telemedicine Sessions</h1>
+                <p>Manage video consultations with patients</p>
+            </div>
+
+            <div className="card">
+                <h3 style={{ marginBottom: '1rem' }}>Scheduled Consultations</h3>
+                {sessions.length === 0 ? (
+                    <p style={{ color: 'var(--gray-500)' }}>No telemedicine sessions scheduled.</p>
+                ) : (
+                    <div className="table-container">
+                        <table className="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Patient</th>
+                                    <th>Type</th>
+                                    <th>Scheduled Time</th>
+                                    <th>Status</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {sessions.map(session => (
+                                    <tr key={session._id}>
+                                        <td><strong>{session.patient_name || 'Unknown Patient'}</strong></td>
+                                        <td>{session.session_type === 'video' ? '📹 Video' : '📞 Audio'}</td>
+                                        <td>{new Date(session.scheduled_time).toLocaleString()}</td>
+                                        <td>
+                                            <span className={`badge ${session.status === 'scheduled' ? 'badge-primary' :
+                                                session.status === 'active' ? 'badge-warning' :
+                                                    session.status === 'completed' ? 'badge-success' : 'badge-error'
+                                                }`}>
+                                                {session.status}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            {(session.status === 'scheduled' || session.status === 'active') && (
+                                                <button
+                                                    className="btn btn-success btn-sm"
+                                                    onClick={() => joinVideoCall(session)}
+                                                    style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+                                                >
+                                                    <FaPhoneAlt /> Join Call
+                                                </button>
+                                            )}
+                                            {session.status === 'completed' && (
+                                                <span style={{ color: 'var(--gray-500)', fontSize: '0.875rem' }}>Completed</span>
+                                            )}
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+};
+
 // Main Doctor Dashboard
+
 const DoctorDashboard = () => {
     const { user, logout } = useAuth();
     const navigate = useNavigate();
@@ -202,11 +333,12 @@ const DoctorDashboard = () => {
             <aside className="sidebar">
                 <div className="sidebar-header">
                     <FaHeartbeat className="sidebar-logo" />
-                    <span>SmartHealth</span>
+                    <span>CKD Predictor</span>
                 </div>
                 <nav className="sidebar-nav">
                     <Link to="/doctor" className="nav-item"><FaChartBar /> Dashboard</Link>
                     <Link to="/doctor/appointments" className="nav-item"><FaCalendarAlt /> Appointments</Link>
+                    <Link to="/doctor/telemedicine" className="nav-item"><FaVideo /> Telemedicine</Link>
                 </nav>
                 <div className="sidebar-footer">
                     <div className="user-info">
@@ -223,6 +355,7 @@ const DoctorDashboard = () => {
                 <Routes>
                     <Route path="/" element={<DoctorStats />} />
                     <Route path="/appointments" element={<DoctorAppointments />} />
+                    <Route path="/telemedicine" element={<DoctorTelemedicine />} />
                 </Routes>
             </main>
         </div>

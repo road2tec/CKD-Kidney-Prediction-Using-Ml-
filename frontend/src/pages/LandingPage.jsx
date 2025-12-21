@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { FaHeartbeat, FaUserMd, FaCalendarCheck, FaBrain, FaShieldAlt, FaClock } from 'react-icons/fa';
+import { FaFlask, FaBrain, FaAppleAlt, FaUsers, FaShieldAlt, FaVideo, FaChartLine, FaMicroscope } from 'react-icons/fa';
 import './LandingPage.css';
 
 const LandingPage = () => {
@@ -11,8 +11,8 @@ const LandingPage = () => {
                 <div className="container">
                     <div className="nav-content">
                         <div className="logo">
-                            <FaHeartbeat className="logo-icon" />
-                            <span>SmartHealth</span>
+                            <FaFlask className="logo-icon" />
+                            <span>CKD Predictor</span>
                         </div>
                         <div className="nav-links">
                             <Link to="/login" className="btn btn-secondary">Login</Link>
@@ -27,16 +27,17 @@ const LandingPage = () => {
                 <div className="container">
                     <div className="hero-content">
                         <div className="hero-badge">
-                            <FaBrain /> AI-Powered Healthcare
+                            <FaBrain /> Explainable AI-Powered Detection
                         </div>
-                        <h1>Smart Patient Healthcare System</h1>
+                        <h1>Chronic Kidney Disease Prediction System</h1>
                         <p className="hero-subtitle">
-                            Experience the future of healthcare with our AI-powered symptom analysis.
-                            Get instant disease predictions and connect with the right specialists.
+                            Advanced AI-powered early detection of Chronic Kidney Disease with transparent
+                            SHAP-based explanations. Get personalized health recommendations, donor matching,
+                            and telemedicine support all in one comprehensive platform.
                         </p>
                         <div className="hero-buttons">
                             <Link to="/register" className="btn btn-primary btn-lg">
-                                Start Free Consultation
+                                Start CKD Risk Assessment
                             </Link>
                             <Link to="/login" className="btn btn-secondary btn-lg">
                                 I have an account
@@ -44,23 +45,23 @@ const LandingPage = () => {
                         </div>
                         <div className="hero-stats">
                             <div className="stat">
-                                <span className="stat-value">95%</span>
-                                <span className="stat-label">Prediction Accuracy</span>
+                                <span className="stat-value">96%</span>
+                                <span className="stat-label">CKD Detection Accuracy</span>
                             </div>
                             <div className="stat">
-                                <span className="stat-value">40+</span>
-                                <span className="stat-label">Diseases Covered</span>
+                                <span className="stat-value">24</span>
+                                <span className="stat-label">Medical Parameters</span>
                             </div>
                             <div className="stat">
-                                <span className="stat-value">24/7</span>
-                                <span className="stat-label">AI Available</span>
+                                <span className="stat-value">100%</span>
+                                <span className="stat-label">AI Explainability</span>
                             </div>
                         </div>
                     </div>
                     <div className="hero-visual">
                         <div className="hero-card">
                             <div className="pulse-ring"></div>
-                            <FaHeartbeat className="hero-icon" />
+                            <FaMicroscope className="hero-icon" />
                         </div>
                     </div>
                 </div>
@@ -70,51 +71,51 @@ const LandingPage = () => {
             <section className="features">
                 <div className="container">
                     <div className="section-header">
-                        <h2>Why Choose SmartHealth?</h2>
-                        <p>Advanced AI technology meets compassionate healthcare</p>
+                        <h2>Complete CKD Care Solution</h2>
+                        <p>AI-powered prediction with comprehensive patient support</p>
                     </div>
                     <div className="features-grid">
                         <div className="feature-card">
                             <div className="feature-icon">
+                                <FaFlask />
+                            </div>
+                            <h3>CKD Prediction</h3>
+                            <p>Advanced Random Forest & Decision Tree models trained on clinical data achieve 96% accuracy in CKD detection.</p>
+                        </div>
+                        <div className="feature-card">
+                            <div className="feature-icon">
                                 <FaBrain />
                             </div>
-                            <h3>AI Symptom Analysis</h3>
-                            <p>Our Naive Bayes ML model analyzes your symptoms and predicts potential conditions with high accuracy.</p>
+                            <h3>Explainable AI (XAI)</h3>
+                            <p>SHAP-based explanations show exactly why the AI made its prediction. Full transparency for doctors and patients.</p>
                         </div>
                         <div className="feature-card">
                             <div className="feature-icon">
-                                <FaUserMd />
+                                <FaAppleAlt />
                             </div>
-                            <h3>Specialist Matching</h3>
-                            <p>Get automatically matched with the right medical specialist based on your predicted condition.</p>
+                            <h3>Personalized Diet & Lifestyle</h3>
+                            <p>Get stage-specific recommendations for diet, exercise, and medication based on your CKD risk level.</p>
                         </div>
                         <div className="feature-card">
                             <div className="feature-icon">
-                                <FaCalendarCheck />
+                                <FaUsers />
                             </div>
-                            <h3>Easy Appointments</h3>
-                            <p>Book appointments with doctors seamlessly and manage your healthcare schedule online.</p>
+                            <h3>Donor-Patient Matching</h3>
+                            <p>Blood group compatibility algorithm connects CKD patients with potential kidney donors efficiently.</p>
                         </div>
                         <div className="feature-card">
                             <div className="feature-icon">
-                                <FaShieldAlt />
+                                <FaVideo />
                             </div>
-                            <h3>Secure & Private</h3>
-                            <p>Your health data is protected with enterprise-grade security and encryption.</p>
+                            <h3>Telemedicine Support</h3>
+                            <p>Virtual consultations with nephrologists, consultation notes, and follow-up scheduling all in one place.</p>
                         </div>
                         <div className="feature-card">
                             <div className="feature-icon">
-                                <FaClock />
+                                <FaChartLine />
                             </div>
-                            <h3>Instant Results</h3>
-                            <p>Get disease predictions in seconds, not hours. Quick analysis for timely care.</p>
-                        </div>
-                        <div className="feature-card">
-                            <div className="feature-icon">
-                                <FaHeartbeat />
-                            </div>
-                            <h3>Health History</h3>
-                            <p>Track your symptoms, predictions, and appointments all in one place.</p>
+                            <h3>Risk Level Assessment</h3>
+                            <p>Not just prediction - get Low, Medium, or High risk classification based on comprehensive analysis.</p>
                         </div>
                     </div>
                 </div>
@@ -125,25 +126,55 @@ const LandingPage = () => {
                 <div className="container">
                     <div className="section-header">
                         <h2>How It Works</h2>
-                        <p>Get healthcare guidance in 3 simple steps</p>
+                        <p>CKD risk assessment in 4 transparent steps</p>
                     </div>
                     <div className="steps">
                         <div className="step">
                             <div className="step-number">1</div>
-                            <h3>Enter Symptoms</h3>
-                            <p>Describe your symptoms using our intuitive interface</p>
+                            <h3>Enter Medical Tests</h3>
+                            <p>Input 24 medical parameters including creatinine, urea, hemoglobin, and blood pressure</p>
                         </div>
                         <div className="step-connector"></div>
                         <div className="step">
                             <div className="step-number">2</div>
                             <h3>AI Analysis</h3>
-                            <p>Our ML model predicts potential diseases and specializations</p>
+                            <p>Random Forest model processes data and predicts CKD risk with 96% accuracy</p>
                         </div>
                         <div className="step-connector"></div>
                         <div className="step">
                             <div className="step-number">3</div>
-                            <h3>Book Doctor</h3>
-                            <p>Schedule an appointment with a recommended specialist</p>
+                            <h3>XAI Explanation</h3>
+                            <p>SHAP shows which test results contributed most to the prediction and why</p>
+                        </div>
+                        <div className="step-connector"></div>
+                        <div className="step">
+                            <div className="step-number">4</div>
+                            <h3>Get Recommendations</h3>
+                            <p>Receive personalized diet, lifestyle advice, and access to telemedicine & donor matching</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            {/* Why CKD Detection Matters */}
+            <section className="why-section">
+                <div className="container">
+                    <div className="section-header">
+                        <h2>Why Early CKD Detection Matters</h2>
+                        <p>Chronic Kidney Disease affects 10% of the global population</p>
+                    </div>
+                    <div className="why-grid">
+                        <div className="why-card">
+                            <h3>Silent Killer</h3>
+                            <p>CKD often shows no symptoms until 75% of kidney function is lost. Early detection saves lives.</p>
+                        </div>
+                        <div className="why-card">
+                            <h3>Preventable Progression</h3>
+                            <p>Caught early, CKD progression can be slowed or even reversed with proper care and lifestyle changes.</p>
+                        </div>
+                        <div className="why-card">
+                            <h3>Expensive Late Treatment</h3>
+                            <p>Dialysis and transplants cost lakhs. Early detection and prevention is far more affordable.</p>
                         </div>
                     </div>
                 </div>
@@ -153,10 +184,10 @@ const LandingPage = () => {
             <section className="cta">
                 <div className="container">
                     <div className="cta-content">
-                        <h2>Ready to Experience Smart Healthcare?</h2>
-                        <p>Join thousands of patients who trust our AI-powered diagnosis system</p>
+                        <h2>Ready to Check Your Kidney Health?</h2>
+                        <p>Join the AI-powered CKD early detection revolution. Free screening available.</p>
                         <Link to="/register" className="btn btn-primary btn-lg">
-                            Create Free Account
+                            Start Free CKD Risk Assessment
                         </Link>
                     </div>
                 </div>
@@ -167,10 +198,11 @@ const LandingPage = () => {
                 <div className="container">
                     <div className="footer-content">
                         <div className="footer-brand">
-                            <FaHeartbeat className="logo-icon" />
-                            <span>SmartHealth</span>
+                            <FaFlask className="logo-icon" />
+                            <span>CKD Predictor</span>
                         </div>
-                        <p>© 2024 Smart Patient Healthcare System. Final Year Project.</p>
+                        <p>© 2024 Chronic Kidney Disease Prediction System with Explainable AI. Final Year Project.</p>
+                        <p className="disclaimer">This is a screening tool, not a replacement for professional medical diagnosis.</p>
                     </div>
                 </div>
             </footer>
