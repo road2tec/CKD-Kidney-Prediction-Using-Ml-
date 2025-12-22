@@ -30,6 +30,7 @@ from routes.hybrid import hybrid_bp
 from routes.xai_report import xai_report_bp
 from routes.pharmacy import pharmacy_bp
 from routes.gemini_recommendations import gemini_bp
+from routes.report_upload import report_bp
 # WebRTC Signaling
 from routes.signaling import init_socketio
 
@@ -66,6 +67,7 @@ app.register_blueprint(hybrid_bp, url_prefix='/api/hybrid')
 app.register_blueprint(xai_report_bp, url_prefix='/api/xai/report')
 app.register_blueprint(pharmacy_bp, url_prefix='/api/pharmacy')
 app.register_blueprint(gemini_bp, url_prefix='/api/gemini')
+app.register_blueprint(report_bp, url_prefix='/api/report')
 
 # JWT error handlers
 @jwt.expired_token_loader

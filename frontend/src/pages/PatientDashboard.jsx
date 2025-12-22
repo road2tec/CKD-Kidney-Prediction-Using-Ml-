@@ -7,6 +7,7 @@ import { saveAs } from 'file-saver';
 import { useAuth, API_URL } from '../App';
 import './Dashboard.css';
 import CKDTestForm from './CKDTestForm';
+import ReportUpload from './ReportUpload';
 import VideoCall from '../components/VideoCall';
 
 
@@ -673,13 +674,19 @@ const PharmacyMedicine = () => {
                                     <div key={idx} className="pharmacy-item">
                                         <div className="pharmacy-info">
                                             <h4>{pharmacy.name}</h4>
-                                            <p>{pharmacy.address ? `${pharmacy.address}, ${pharmacy.city}` : `${pharmacy.distance} away`}</p>
-                                            <p>{pharmacy.hours} | {pharmacy.contact}</p>
+                                            <p>{pharmacy.address ? `${pharmacy.address}` : `${pharmacy.distance} away`}</p>
+                                            <p style={{ fontSize: '0.85rem', color: 'var(--gray-500)' }}>
+                                                {pharmacy.city}{pharmacy.state ? `, ${pharmacy.state}` : ''}{pharmacy.pincode ? ` - ${pharmacy.pincode}` : ''}
+                                            </p>
+                                            <p><FaPhoneAlt style={{ marginRight: '4px' }} />{pharmacy.contact} | {pharmacy.hours}</p>
                                             {pharmacy.rating && <p>⭐ {pharmacy.rating}/5</p>}
                                         </div>
                                         <div className="pharmacy-badges">
                                             {pharmacy.delivers && <span className="badge badge-success">Delivery</span>}
                                             <span className="badge badge-primary">{pharmacy.type}</span>
+                                            {(pharmacy.total_medicines || pharmacy.available_medicines?.length > 0) && (
+                                                <span className="badge badge-warning">{pharmacy.total_medicines || pharmacy.available_medicines?.length} medicines</span>
+                                            )}
                                         </div>
                                     </div>
                                 ))}
@@ -758,9 +765,16 @@ const AIRecommendations = () => {
             const res = await axios.post(`${API_URL}/gemini/quick-advice`,
                 {
                     question: question,
+                    include_medicines: true,  // Enable medicine recommendations
                     context: lastPrediction ? {
                         prediction: lastPrediction.prediction?.result,
-                        risk_level: lastPrediction.prediction?.risk_level
+                        risk_level: lastPrediction.prediction?.risk_level,
+                        age: lastPrediction.input_data?.age,
+                        gender: lastPrediction.input_data?.gender || 'unknown',
+                        has_diabetes: lastPrediction.input_data?.dm === 'yes',
+                        has_hypertension: lastPrediction.input_data?.htn === 'yes',
+                        hemoglobin: lastPrediction.input_data?.hemo,
+                        serum_creatinine: lastPrediction.input_data?.sc
                     } : {}
                 },
                 { headers: { Authorization: `Bearer ${getToken()}` } }
@@ -784,25 +798,31 @@ const AIRecommendations = () => {
 
             {/* Quick Question Box */}
             <div className="card" style={{ marginBottom: '2rem', background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', color: 'white' }}>
-                <h3 style={{ marginBottom: '1rem', color: 'white' }}>💬 Ask AI About Your Health</h3>
+                <h3 style={{ marginBottom: '1rem', color: 'white' }}>💬 Ask AI About Your Health & Medicines</h3>
+                <p style={{ marginBottom: '1rem', opacity: 0.9, fontSize: '0.9rem' }}>
+                    Get personalized health advice including medicine recommendations based on your profile
+                </p>
                 <div className="flex gap-3" style={{ flexWrap: 'wrap' }}>
                     <input
                         type="text"
                         className="form-input"
-                        placeholder="e.g., What foods should I avoid with high creatinine?"
+                        placeholder="e.g., What medicines help with CKD? What should I avoid with high creatinine?"
                         value={question}
                         onChange={e => setQuestion(e.target.value)}
                         onKeyPress={e => e.key === 'Enter' && askQuestion()}
-                        style={{ flex: '1', minWidth: '200px', background: 'rgba(255,255,255,0.9)', color: '#333' }}
+                        style={{ flex: '1', minWidth: '200px', background: 'rgba(255,255,255,0.95)', color: '#333' }}
                     />
-                    <button className="btn" onClick={askQuestion} disabled={askingQuestion} style={{ background: 'white', color: '#764ba2' }}>
-                        {askingQuestion ? <FaSpinner className="spin" /> : 'Ask AI'}
+                    <button className="btn" onClick={askQuestion} disabled={askingQuestion} style={{ background: 'white', color: '#764ba2', fontWeight: '600' }}>
+                        {askingQuestion ? <FaSpinner className="spin" /> : '🤖 Ask AI'}
                     </button>
                 </div>
                 {quickAdvice && (
-                    <div style={{ marginTop: '1rem', padding: '1rem', background: 'rgba(255,255,255,0.95)', borderRadius: '0.5rem', color: '#333' }}>
-                        <p style={{ whiteSpace: 'pre-wrap', lineHeight: '1.6' }}>{quickAdvice}</p>
-                        <small style={{ color: '#666', marginTop: '0.5rem', display: 'block' }}>⚠️ AI-generated advice. Consult your doctor for medical decisions.</small>
+                    <div style={{ marginTop: '1.5rem', padding: '1.5rem', background: 'rgba(255,255,255,0.98)', borderRadius: '0.75rem', color: '#333', boxShadow: '0 4px 15px rgba(0,0,0,0.1)' }}>
+                        <h4 style={{ marginBottom: '0.75rem', color: '#764ba2' }}>💊 AI Health & Medicine Advice</h4>
+                        <div style={{ whiteSpace: 'pre-wrap', lineHeight: '1.8', fontSize: '0.95rem' }}>{quickAdvice}</div>
+                        <div style={{ marginTop: '1rem', padding: '0.75rem', background: '#fff3cd', borderRadius: '0.5rem', fontSize: '0.85rem' }}>
+                            ⚠️ <strong>Disclaimer:</strong> This AI-generated advice is for informational purposes only. Always consult your doctor before taking any medication or making health decisions.
+                        </div>
                     </div>
                 )}
             </div>
@@ -1041,6 +1061,7 @@ const PatientDashboard = () => {
                 </div>
                 <nav className="sidebar-nav">
                     <Link to="/patient" className="nav-item"><FaFlask /> CKD Test</Link>
+                    <Link to="/patient/upload-report" className="nav-item">📄 Upload Report</Link>
                     <Link to="/patient/history" className="nav-item"><FaHistory /> Test History</Link>
                     <Link to="/patient/ai-recommendations" className="nav-item">🤖 AI Recommendations</Link>
                     <Link to="/patient/telemedicine" className="nav-item"><FaVideo /> Telemedicine</Link>
@@ -1065,6 +1086,7 @@ const PatientDashboard = () => {
                 <Routes>
                     <Route path="/" element={<CKDTestForm />} />
                     <Route path="/ckd-test" element={<CKDTestForm />} />
+                    <Route path="/upload-report" element={<ReportUpload />} />
                     <Route path="/history" element={<CKDTestHistory />} />
                     <Route path="/ai-recommendations" element={<AIRecommendations />} />
                     <Route path="/telemedicine" element={<Telemedicine />} />

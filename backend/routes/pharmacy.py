@@ -330,7 +330,7 @@ def admin_get_all_pharmacies():
 @pharmacy_bp.route('/admin/pharmacy', methods=['POST'])
 @jwt_required()
 def admin_add_pharmacy():
-    """Admin: Add a new pharmacy"""
+    """Admin: Add a new pharmacy with location and medicine list"""
     try:
         db = get_db()
         current_user = get_current_user()
@@ -348,11 +348,25 @@ def admin_add_pharmacy():
             if not data.get(field):
                 return jsonify({'success': False, 'message': f'{field} is required'}), 400
         
+        # Process available medicines list
+        available_medicines = []
+        if data.get('available_medicines'):
+            for med in data['available_medicines']:
+                available_medicines.append({
+                    'medicine_id': med.get('medicine_id'),
+                    'name': med.get('name'),
+                    'in_stock': med.get('in_stock', True),
+                    'quantity': med.get('quantity', 0),
+                    'price': med.get('price', 0)
+                })
+        
         pharmacy = {
             'name': data['name'],
             'type': data['type'],
             'address': data['address'],
             'city': data.get('city', ''),
+            'state': data.get('state', ''),
+            'pincode': data.get('pincode', ''),
             'distance': data.get('distance', 'N/A'),
             'availability': data.get('availability', 'Available'),
             'hours': data['hours'],
@@ -362,6 +376,8 @@ def admin_add_pharmacy():
             'rating': data.get('rating', 0),
             'latitude': data.get('latitude'),
             'longitude': data.get('longitude'),
+            'available_medicines': available_medicines,
+            'total_medicines': len(available_medicines),
             'is_active': True,
             'created_at': datetime.utcnow(),
             'created_by': current_user['id']
@@ -439,6 +455,165 @@ def admin_delete_pharmacy(pharmacy_id):
         return jsonify({
             'success': True,
             'message': 'Pharmacy deleted successfully'
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@pharmacy_bp.route('/admin/pharmacy/<pharmacy_id>/medicines', methods=['GET'])
+@jwt_required()
+def admin_get_pharmacy_medicines(pharmacy_id):
+    """Admin: Get medicines available in a specific pharmacy"""
+    try:
+        db = get_db()
+        current_user = get_current_user()
+        
+        user = db.users.find_one({'_id': ObjectId(current_user['id'])})
+        if not user or user.get('role') != 'admin':
+            return jsonify({'success': False, 'message': 'Admin access required'}), 403
+        
+        pharmacy = db.pharmacies.find_one({'_id': ObjectId(pharmacy_id)})
+        if not pharmacy:
+            return jsonify({'success': False, 'message': 'Pharmacy not found'}), 404
+        
+        return jsonify({
+            'success': True,
+            'pharmacy_name': pharmacy.get('name'),
+            'medicines': pharmacy.get('available_medicines', []),
+            'total': len(pharmacy.get('available_medicines', []))
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@pharmacy_bp.route('/admin/pharmacy/<pharmacy_id>/medicines', methods=['POST'])
+@jwt_required()
+def admin_add_pharmacy_medicine(pharmacy_id):
+    """Admin: Add a medicine to a pharmacy's inventory"""
+    try:
+        db = get_db()
+        current_user = get_current_user()
+        
+        user = db.users.find_one({'_id': ObjectId(current_user['id'])})
+        if not user or user.get('role') != 'admin':
+            return jsonify({'success': False, 'message': 'Admin access required'}), 403
+        
+        data = request.get_json()
+        
+        if not data.get('name'):
+            return jsonify({'success': False, 'message': 'Medicine name is required'}), 400
+        
+        new_medicine = {
+            'medicine_id': data.get('medicine_id', str(ObjectId())),
+            'name': data['name'],
+            'category': data.get('category', 'General'),
+            'in_stock': data.get('in_stock', True),
+            'quantity': data.get('quantity', 0),
+            'price': data.get('price', 0),
+            'unit': data.get('unit', 'per strip'),
+            'added_at': datetime.utcnow().isoformat()
+        }
+        
+        result = db.pharmacies.update_one(
+            {'_id': ObjectId(pharmacy_id)},
+            {
+                '$push': {'available_medicines': new_medicine},
+                '$inc': {'total_medicines': 1},
+                '$set': {'updated_at': datetime.utcnow()}
+            }
+        )
+        
+        if result.matched_count == 0:
+            return jsonify({'success': False, 'message': 'Pharmacy not found'}), 404
+        
+        return jsonify({
+            'success': True,
+            'message': 'Medicine added to pharmacy',
+            'medicine': new_medicine
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@pharmacy_bp.route('/admin/pharmacy/<pharmacy_id>/medicines/<medicine_id>', methods=['DELETE'])
+@jwt_required()
+def admin_remove_pharmacy_medicine(pharmacy_id, medicine_id):
+    """Admin: Remove a medicine from a pharmacy's inventory"""
+    try:
+        db = get_db()
+        current_user = get_current_user()
+        
+        user = db.users.find_one({'_id': ObjectId(current_user['id'])})
+        if not user or user.get('role') != 'admin':
+            return jsonify({'success': False, 'message': 'Admin access required'}), 403
+        
+        result = db.pharmacies.update_one(
+            {'_id': ObjectId(pharmacy_id)},
+            {
+                '$pull': {'available_medicines': {'medicine_id': medicine_id}},
+                '$inc': {'total_medicines': -1},
+                '$set': {'updated_at': datetime.utcnow()}
+            }
+        )
+        
+        if result.matched_count == 0:
+            return jsonify({'success': False, 'message': 'Pharmacy not found'}), 404
+        
+        return jsonify({
+            'success': True,
+            'message': 'Medicine removed from pharmacy'
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@pharmacy_bp.route('/admin/pharmacy/<pharmacy_id>/medicines/bulk', methods=['POST'])
+@jwt_required()
+def admin_bulk_add_pharmacy_medicines(pharmacy_id):
+    """Admin: Add multiple medicines to a pharmacy at once"""
+    try:
+        db = get_db()
+        current_user = get_current_user()
+        
+        user = db.users.find_one({'_id': ObjectId(current_user['id'])})
+        if not user or user.get('role') != 'admin':
+            return jsonify({'success': False, 'message': 'Admin access required'}), 403
+        
+        data = request.get_json()
+        medicines = data.get('medicines', [])
+        
+        if not medicines:
+            return jsonify({'success': False, 'message': 'No medicines provided'}), 400
+        
+        processed_medicines = []
+        for med in medicines:
+            processed_medicines.append({
+                'medicine_id': med.get('medicine_id', str(ObjectId())),
+                'name': med.get('name', 'Unknown'),
+                'category': med.get('category', 'General'),
+                'in_stock': med.get('in_stock', True),
+                'quantity': med.get('quantity', 0),
+                'price': med.get('price', 0),
+                'unit': med.get('unit', 'per strip'),
+                'added_at': datetime.utcnow().isoformat()
+            })
+        
+        result = db.pharmacies.update_one(
+            {'_id': ObjectId(pharmacy_id)},
+            {
+                '$push': {'available_medicines': {'$each': processed_medicines}},
+                '$inc': {'total_medicines': len(processed_medicines)},
+                '$set': {'updated_at': datetime.utcnow()}
+            }
+        )
+        
+        if result.matched_count == 0:
+            return jsonify({'success': False, 'message': 'Pharmacy not found'}), 404
+        
+        return jsonify({
+            'success': True,
+            'message': f'{len(processed_medicines)} medicines added to pharmacy',
+            'added_count': len(processed_medicines)
         })
     except Exception as e:
         return jsonify({'success': False, 'message': str(e)}), 500

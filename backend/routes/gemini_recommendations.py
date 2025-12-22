@@ -410,7 +410,7 @@ def get_personalized_recommendations():
 @gemini_bp.route('/quick-advice', methods=['POST'])
 @jwt_required()
 def get_quick_advice():
-    """Get quick AI advice for specific CKD-related questions"""
+    """Get quick AI advice for specific CKD-related questions including medicine recommendations"""
     try:
         db = get_db()
         current_user = get_current_user()
@@ -418,6 +418,14 @@ def get_quick_advice():
         
         question = data.get('question', '')
         context = data.get('context', {})  # Optional patient context
+        include_medicines = data.get('include_medicines', True)  # Include medicine recommendations
+        
+        # Get patient info from user profile if available
+        user = db.users.find_one({'_id': ObjectId(current_user['id'])})
+        age = context.get('age') or (user.get('age') if user else None) or 'unknown'
+        gender = context.get('gender') or (user.get('gender') if user else None) or 'unknown'
+        risk_level = context.get('risk_level', 'unknown')
+        prediction = context.get('prediction', 'unknown')
         
         if not question:
             return jsonify({
@@ -425,32 +433,60 @@ def get_quick_advice():
                 'message': 'Question is required'
             }), 400
         
-        # Create prompt for quick advice
+        # Create enhanced prompt with medicine recommendations
+        medicine_section = ""
+        if include_medicines:
+            medicine_section = """
+
+MEDICINE RECOMMENDATIONS:
+Also provide medication suggestions for CKD management considering the patient's profile. Include:
+- Common prescribed medications for CKD based on their risk level
+- Dosage guidance (general ranges - emphasize doctor consultation for specific doses)
+- Important drug interactions to avoid
+- Over-the-counter medicines that are safe or should be avoided
+
+Format the medicine recommendations clearly with:
+💊 RECOMMENDED MEDICATIONS:
+- [Medicine Name]: [Purpose] - [General dosage range]
+
+⚠️ MEDICATIONS TO AVOID:
+- [Medicine Name]: [Reason to avoid]
+
+📋 IMPORTANT NOTES:
+- Key considerations for this patient's age and condition"""
+        
         prompt = f"""You are a helpful medical AI assistant specializing in Chronic Kidney Disease (CKD). 
 A patient has the following question:
 
 QUESTION: {question}
 
-PATIENT CONTEXT (if available):
+PATIENT PROFILE:
+- Age: {age} years
+- Gender: {gender}
+- CKD Prediction: {prediction}
+- Risk Level: {risk_level}
+
+ADDITIONAL CONTEXT:
 {json.dumps(context, indent=2) if context else 'No additional context provided'}
 
-Please provide a helpful, accurate, and concise response. Important guidelines:
+Please provide a helpful, accurate, and comprehensive response. Important guidelines:
 1. Be informative but always recommend consulting healthcare providers for personalized advice
-2. If the question involves medication or dosages, emphasize the need for professional guidance
+2. If the question involves medication or dosages, provide general guidance but emphasize professional consultation
 3. Provide practical, actionable advice where appropriate
 4. Be empathetic and supportive in your response
-5. Keep the response under 300 words
+5. Consider the patient's age, gender, and risk level in your recommendations{medicine_section}
 
-Response:"""
+Provide a well-structured response with clear sections."""
 
         # Call Gemini API
-        gemini_response = call_gemini_rest_api(prompt, max_tokens=1024)
+        gemini_response = call_gemini_rest_api(prompt, max_tokens=2048)
         
         if gemini_response['success']:
             advice = gemini_response['text']
             source = 'gemini-ai'
         else:
-            advice = "I apologize, but I couldn't generate a response at this moment. Please try again later or consult with your healthcare provider for guidance on your question."
+            # Fallback with medicine recommendations
+            advice = get_fallback_advice_with_medicines(age, gender, risk_level, question)
             source = 'fallback'
         
         # Log the query
@@ -458,6 +494,9 @@ Response:"""
             'user_id': current_user['id'],
             'question': question,
             'context': context,
+            'age': age,
+            'gender': gender,
+            'risk_level': risk_level,
             'source': source,
             'created_at': datetime.utcnow()
         }
@@ -467,14 +506,103 @@ Response:"""
             'success': True,
             'advice': advice,
             'source': source,
-            'disclaimer': 'This advice is AI-generated and not a substitute for professional medical advice.'
+            'patient_profile': {
+                'age': age,
+                'gender': gender,
+                'risk_level': risk_level
+            },
+            'disclaimer': 'This advice is AI-generated and not a substitute for professional medical advice. Always consult your doctor before taking any medication.'
         })
         
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         return jsonify({
             'success': False,
             'message': str(e)
         }), 500
+
+
+def get_fallback_advice_with_medicines(age, gender, risk_level, question):
+    """Generate fallback advice with medicine recommendations"""
+    
+    # Age-based considerations
+    if age != 'unknown':
+        try:
+            age_num = int(age)
+            if age_num >= 65:
+                age_note = "For patients 65+, lower starting doses are typically recommended."
+            elif age_num < 18:
+                age_note = "Pediatric dosing requires special consideration."
+            else:
+                age_note = "Standard adult dosing applies."
+        except:
+            age_note = ""
+    else:
+        age_note = ""
+    
+    # Risk level based recommendations
+    if risk_level in ['High', 'high']:
+        meds_section = """
+💊 COMMONLY PRESCRIBED MEDICATIONS FOR HIGH-RISK CKD:
+- ACE Inhibitors (e.g., Lisinopril, Enalapril): Help protect kidneys and control blood pressure - Typical dose: 5-40mg daily
+- ARBs (e.g., Losartan, Telmisartan): Alternative to ACE inhibitors - Typical dose: 25-100mg daily  
+- Diuretics (e.g., Furosemide): Help manage fluid retention - Dose varies by kidney function
+- Phosphate Binders: Control phosphorus levels
+- Erythropoietin: For CKD-related anemia
+
+⚠️ MEDICATIONS TO AVOID:
+- NSAIDs (Ibuprofen, Naproxen): Can worsen kidney function
+- Certain antibiotics without dose adjustment
+- High-dose Vitamin C supplements
+- Herbal supplements (many are not tested for safety in CKD)"""
+    elif risk_level in ['Medium', 'medium']:
+        meds_section = """
+💊 COMMONLY PRESCRIBED MEDICATIONS FOR MODERATE RISK:
+- ACE Inhibitors or ARBs: First-line for kidney protection
+- Blood pressure medications as needed
+- Statins: For cardiovascular protection
+- Vitamin D supplements (if deficient)
+
+⚠️ MEDICATIONS TO AVOID:
+- NSAIDs (use sparingly if at all)
+- Certain herbal supplements
+- High-sodium antacids"""
+    else:
+        meds_section = """
+💊 PREVENTIVE MEDICATIONS:
+- Blood pressure control medications if hypertensive
+- Diabetes medications if diabetic
+- Statins for cardiovascular health
+
+⚠️ GENERAL PRECAUTIONS:
+- Avoid overuse of pain medications
+- Stay hydrated appropriately
+- Regular monitoring of kidney function"""
+    
+    response = f"""Thank you for your question about CKD management.
+
+{age_note}
+
+GENERAL ADVICE:
+Based on available information about Chronic Kidney Disease, here are some key points to consider:
+
+1. Regular monitoring of kidney function is essential
+2. Blood pressure and blood sugar control are crucial for kidney protection
+3. Maintaining a kidney-friendly diet helps slow disease progression
+4. Staying adequately hydrated supports kidney function
+
+{meds_section}
+
+📋 IMPORTANT NOTES:
+- All medications should be prescribed and monitored by your healthcare provider
+- Dosages may need adjustment based on your specific kidney function
+- Report any side effects immediately to your doctor
+- Keep a list of all medications including supplements
+
+⚠️ DISCLAIMER: This information is for educational purposes only. Please consult your nephrologist or healthcare provider for personalized medication recommendations and proper dosing based on your specific condition."""
+
+    return response
 
 
 @gemini_bp.route('/diet-plan', methods=['POST'])

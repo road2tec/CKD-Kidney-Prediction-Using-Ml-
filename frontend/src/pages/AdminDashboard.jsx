@@ -320,7 +320,8 @@ const PharmacyManagement = () => {
     const [showMedicineForm, setShowMedicineForm] = useState(false);
     const [activeTab, setActiveTab] = useState('pharmacies');
     const [pharmacyForm, setPharmacyForm] = useState({
-        name: '', type: 'Chain Store', address: '', city: '', contact: '', hours: '', email: '', delivers: true
+        name: '', type: 'Chain Store', address: '', city: '', state: '', pincode: '',
+        contact: '', hours: '', email: '', delivers: true, latitude: '', longitude: ''
     });
     const [medicineForm, setMedicineForm] = useState({
         name: '', category: 'blood_pressure', purpose: '', notes: '', common_dosage: '', price_range: '', requires_prescription: true, ckd_relevance: 'Medium'
@@ -352,7 +353,7 @@ const PharmacyManagement = () => {
             if (res.data.success) {
                 toast.success('Pharmacy added successfully');
                 setShowPharmacyForm(false);
-                setPharmacyForm({ name: '', type: 'Chain Store', address: '', city: '', contact: '', hours: '', email: '', delivers: true });
+                setPharmacyForm({ name: '', type: 'Chain Store', address: '', city: '', state: '', pincode: '', contact: '', hours: '', email: '', delivers: true, latitude: '', longitude: '' });
                 fetchData();
             }
         } catch (error) {
@@ -455,6 +456,14 @@ const PharmacyManagement = () => {
                                 <input type="text" className="form-input" value={pharmacyForm.city} onChange={e => setPharmacyForm({ ...pharmacyForm, city: e.target.value })} />
                             </div>
                             <div className="form-group">
+                                <label className="form-label">State</label>
+                                <input type="text" className="form-input" placeholder="e.g., Maharashtra" value={pharmacyForm.state} onChange={e => setPharmacyForm({ ...pharmacyForm, state: e.target.value })} />
+                            </div>
+                            <div className="form-group">
+                                <label className="form-label">Pincode</label>
+                                <input type="text" className="form-input" placeholder="e.g., 400001" value={pharmacyForm.pincode} onChange={e => setPharmacyForm({ ...pharmacyForm, pincode: e.target.value })} />
+                            </div>
+                            <div className="form-group">
                                 <label className="form-label">Contact *</label>
                                 <input type="text" className="form-input" value={pharmacyForm.contact} onChange={e => setPharmacyForm({ ...pharmacyForm, contact: e.target.value })} required />
                             </div>
@@ -541,16 +550,22 @@ const PharmacyManagement = () => {
                 <div className="table-container card">
                     <table className="data-table">
                         <thead>
-                            <tr><th>Name</th><th>Type</th><th>Address</th><th>Contact</th><th>Hours</th><th>Delivery</th><th>Actions</th></tr>
+                            <tr><th>Name</th><th>Type</th><th>Location</th><th>Contact</th><th>Hours</th><th>Medicines</th><th>Delivery</th><th>Actions</th></tr>
                         </thead>
                         <tbody>
                             {pharmacies.map(p => (
                                 <tr key={p._id}>
                                     <td><strong>{p.name}</strong></td>
                                     <td><span className="badge badge-primary">{p.type}</span></td>
-                                    <td>{p.address}, {p.city}</td>
+                                    <td>
+                                        <div style={{ fontSize: '0.9rem' }}>{p.address}</div>
+                                        <div style={{ fontSize: '0.8rem', color: 'var(--gray-500)' }}>{p.city}{p.state ? `, ${p.state}` : ''}{p.pincode ? ` - ${p.pincode}` : ''}</div>
+                                    </td>
                                     <td>{p.contact}</td>
                                     <td>{p.hours}</td>
+                                    <td>
+                                        <span className="badge badge-primary">{p.total_medicines || p.available_medicines?.length || 0} medicines</span>
+                                    </td>
                                     <td>{p.delivers ? <span className="badge badge-success">Yes</span> : <span className="badge badge-error">No</span>}</td>
                                     <td>
                                         <button className="btn btn-sm btn-danger" onClick={() => handleDeletePharmacy(p._id)}><FaTrash /></button>
