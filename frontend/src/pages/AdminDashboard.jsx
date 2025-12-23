@@ -311,297 +311,249 @@ const AppointmentsOverview = () => {
     );
 };
 
-// Pharmacy Management
-const PharmacyManagement = () => {
-    const [pharmacies, setPharmacies] = useState([]);
-    const [medicines, setMedicines] = useState([]);
+// Medical Management - Unified Pharmacy with Medicine List
+const MedicalManagement = () => {
+    const [medicals, setMedicals] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [showPharmacyForm, setShowPharmacyForm] = useState(false);
-    const [showMedicineForm, setShowMedicineForm] = useState(false);
-    const [activeTab, setActiveTab] = useState('pharmacies');
-    const [pharmacyForm, setPharmacyForm] = useState({
-        name: '', type: 'Chain Store', address: '', city: '', state: '', pincode: '',
-        contact: '', hours: '', email: '', delivers: true, latitude: '', longitude: ''
+    const [showForm, setShowForm] = useState(false);
+    const [selectedMedical, setSelectedMedical] = useState(null);
+    const [formData, setFormData] = useState({
+        name: '', type: 'Medical Store', address: '', city: '', state: '', pincode: '',
+        contact: '', hours: '', email: '', delivers: true
     });
-    const [medicineForm, setMedicineForm] = useState({
-        name: '', category: 'blood_pressure', purpose: '', notes: '', common_dosage: '', price_range: '', requires_prescription: true, ckd_relevance: 'Medium'
-    });
+    const [selectedMedicines, setSelectedMedicines] = useState([]);
     const { getToken } = useAuth();
 
-    useEffect(() => { fetchData(); }, [activeTab]);
+    // Common CKD Medicines list
+    const commonMedicines = [
+        { name: 'Lisinopril (ACE Inhibitor)', category: 'Blood Pressure', purpose: 'Kidney protection & BP control' },
+        { name: 'Losartan (ARB)', category: 'Blood Pressure', purpose: 'BP control, protects kidneys' },
+        { name: 'Amlodipine', category: 'Blood Pressure', purpose: 'Calcium channel blocker for BP' },
+        { name: 'Metformin', category: 'Diabetes', purpose: 'Blood sugar control (dose adjustment in CKD)' },
+        { name: 'Dapagliflozin (SGLT2)', category: 'Diabetes/CKD', purpose: 'Blood sugar + kidney protection' },
+        { name: 'Furosemide', category: 'Diuretic', purpose: 'Fluid retention management' },
+        { name: 'Erythropoietin', category: 'Anemia', purpose: 'CKD-related anemia treatment' },
+        { name: 'Iron Supplements', category: 'Anemia', purpose: 'Iron deficiency treatment' },
+        { name: 'Calcium Acetate', category: 'Phosphate Binder', purpose: 'Controls phosphorus levels' },
+        { name: 'Vitamin D (Calcitriol)', category: 'Supplements', purpose: 'Bone health in CKD' },
+        { name: 'Sodium Bicarbonate', category: 'Acidosis', purpose: 'Treats metabolic acidosis' },
+        { name: 'Atorvastatin', category: 'Cholesterol', purpose: 'Cardiovascular protection' }
+    ];
 
-    const fetchData = async () => {
+    useEffect(() => { fetchMedicals(); }, []);
+
+    const fetchMedicals = async () => {
         try {
-            if (activeTab === 'pharmacies') {
-                const res = await axios.get(`${API_URL}/pharmacy/admin/pharmacies`, { headers: { Authorization: `Bearer ${getToken()}` } });
-                if (res.data.success) setPharmacies(res.data.pharmacies);
-            } else {
-                const res = await axios.get(`${API_URL}/pharmacy/admin/medicines`, { headers: { Authorization: `Bearer ${getToken()}` } });
-                if (res.data.success) setMedicines(res.data.medicines);
-            }
+            const res = await axios.get(`${API_URL}/pharmacy/admin/pharmacies`, { headers: { Authorization: `Bearer ${getToken()}` } });
+            if (res.data.success) setMedicals(res.data.pharmacies);
         } catch (error) {
-            toast.error('Failed to fetch data');
+            console.error('Error fetching medicals');
         } finally {
             setLoading(false);
         }
     };
 
-    const handleAddPharmacy = async (e) => {
-        e.preventDefault();
-        try {
-            const res = await axios.post(`${API_URL}/pharmacy/admin/pharmacy`, pharmacyForm, { headers: { Authorization: `Bearer ${getToken()}` } });
-            if (res.data.success) {
-                toast.success('Pharmacy added successfully');
-                setShowPharmacyForm(false);
-                setPharmacyForm({ name: '', type: 'Chain Store', address: '', city: '', state: '', pincode: '', contact: '', hours: '', email: '', delivers: true, latitude: '', longitude: '' });
-                fetchData();
-            }
-        } catch (error) {
-            toast.error(error.response?.data?.message || 'Failed to add pharmacy');
+    const toggleMedicine = (idx) => {
+        setSelectedMedicines(prev =>
+            prev.includes(idx) ? prev.filter(i => i !== idx) : [...prev, idx]
+        );
+    };
+
+    const selectAllMedicines = () => {
+        if (selectedMedicines.length === commonMedicines.length) {
+            setSelectedMedicines([]);
+        } else {
+            setSelectedMedicines(commonMedicines.map((_, idx) => idx));
         }
     };
 
-    const handleAddMedicine = async (e) => {
+    const handleAddMedical = async (e) => {
         e.preventDefault();
         try {
-            const res = await axios.post(`${API_URL}/pharmacy/admin/medicine`, medicineForm, { headers: { Authorization: `Bearer ${getToken()}` } });
+            const selectedMeds = selectedMedicines.map(idx => ({
+                medicine_id: `med_${idx}`,
+                name: commonMedicines[idx].name,
+                category: commonMedicines[idx].category,
+                purpose: commonMedicines[idx].purpose,
+                in_stock: true,
+                price: 0
+            }));
+            const dataWithMedicines = {
+                ...formData,
+                available_medicines: selectedMeds
+            };
+            const res = await axios.post(`${API_URL}/pharmacy/admin/pharmacy`, dataWithMedicines, { headers: { Authorization: `Bearer ${getToken()}` } });
             if (res.data.success) {
-                toast.success('Medicine added successfully');
-                setShowMedicineForm(false);
-                setMedicineForm({ name: '', category: 'blood_pressure', purpose: '', notes: '', common_dosage: '', price_range: '', requires_prescription: true, ckd_relevance: 'Medium' });
-                fetchData();
+                toast.success(`Medical store added with ${selectedMeds.length} medicines!`);
+                setShowForm(false);
+                setFormData({ name: '', type: 'Medical Store', address: '', city: '', state: '', pincode: '', contact: '', hours: '', email: '', delivers: true });
+                setSelectedMedicines([]);
+                fetchMedicals();
             }
         } catch (error) {
-            toast.error(error.response?.data?.message || 'Failed to add medicine');
+            toast.error(error.response?.data?.message || 'Failed to add medical store');
         }
     };
 
-    const handleDeletePharmacy = async (id) => {
-        if (!window.confirm('Delete this pharmacy?')) return;
+    const handleDeleteMedical = async (id) => {
+        if (!window.confirm('Delete this medical store?')) return;
         try {
             await axios.delete(`${API_URL}/pharmacy/admin/pharmacy/${id}`, { headers: { Authorization: `Bearer ${getToken()}` } });
-            toast.success('Pharmacy deleted');
-            fetchData();
+            toast.success('Medical store deleted');
+            setSelectedMedical(null);
+            fetchMedicals();
         } catch (error) {
             toast.error('Failed to delete');
         }
     };
 
-    const handleDeleteMedicine = async (id) => {
-        if (!window.confirm('Delete this medicine?')) return;
-        try {
-            await axios.delete(`${API_URL}/pharmacy/admin/medicine/${id}`, { headers: { Authorization: `Bearer ${getToken()}` } });
-            toast.success('Medicine deleted');
-            fetchData();
-        } catch (error) {
-            toast.error('Failed to delete');
-        }
-    };
-
-    const pharmacyTypes = ['Chain Store', 'Hospital Pharmacy', 'Retail Pharmacy', 'Online Pharmacy'];
-    const categories = [
-        { id: 'blood_pressure', name: 'Antihypertensives' },
-        { id: 'diabetes_management', name: 'Antidiabetics' },
-        { id: 'anemia_management', name: 'Anemia Treatment' },
-        { id: 'phosphate_binders', name: 'Mineral Management' },
-        { id: 'supplements', name: 'Nutritional Supplements' },
-        { id: 'potassium_management', name: 'Electrolyte Management' }
-    ];
+    const medicalTypes = ['Medical Store', 'Hospital Pharmacy', 'Chain Pharmacy', 'Online Pharmacy'];
 
     if (loading) return <div className="loading-overlay"><div className="spinner"></div></div>;
 
     return (
         <div className="page-content animate-fadeIn">
             <div className="page-header flex justify-between items-center">
-                <div><h1><FaPills /> Pharmacy & Medicines</h1><p>Manage pharmacies and CKD medications</p></div>
-                <div className="flex gap-3">
-                    {activeTab === 'pharmacies' ? (
-                        <button className="btn btn-primary" onClick={() => setShowPharmacyForm(!showPharmacyForm)}><FaPlus /> Add Pharmacy</button>
-                    ) : (
-                        <button className="btn btn-primary" onClick={() => setShowMedicineForm(!showMedicineForm)}><FaPlus /> Add Medicine</button>
-                    )}
+                <div>
+                    <h1><FaPills /> Medical Stores</h1>
+                    <p>Manage medical stores with CKD medicines</p>
                 </div>
-            </div>
-
-            <div className="filter-tabs mb-4">
-                <button className={`filter-tab ${activeTab === 'pharmacies' ? 'active' : ''}`} onClick={() => setActiveTab('pharmacies')}>
-                    Pharmacies ({pharmacies.length})
-                </button>
-                <button className={`filter-tab ${activeTab === 'medicines' ? 'active' : ''}`} onClick={() => setActiveTab('medicines')}>
-                    Medicines ({medicines.length})
+                <button className="btn btn-primary" onClick={() => setShowForm(!showForm)}>
+                    <FaPlus /> Add Medical Store
                 </button>
             </div>
 
-            {showPharmacyForm && (
+            {showForm && (
                 <div className="card mb-6 animate-fadeIn">
-                    <h3 className="mb-4">Add New Pharmacy</h3>
-                    <form onSubmit={handleAddPharmacy}>
+                    <h3 className="mb-4">Add New Medical Store</h3>
+                    <form onSubmit={handleAddMedical}>
                         <div className="grid grid-cols-2 gap-4">
                             <div className="form-group">
-                                <label className="form-label">Name *</label>
-                                <input type="text" className="form-input" value={pharmacyForm.name} onChange={e => setPharmacyForm({ ...pharmacyForm, name: e.target.value })} required />
+                                <label className="form-label">Store Name *</label>
+                                <input type="text" className="form-input" value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} required />
                             </div>
                             <div className="form-group">
                                 <label className="form-label">Type *</label>
-                                <select className="form-select" value={pharmacyForm.type} onChange={e => setPharmacyForm({ ...pharmacyForm, type: e.target.value })}>
-                                    {pharmacyTypes.map(t => <option key={t} value={t}>{t}</option>)}
+                                <select className="form-select" value={formData.type} onChange={e => setFormData({ ...formData, type: e.target.value })}>
+                                    {medicalTypes.map(t => <option key={t} value={t}>{t}</option>)}
                                 </select>
                             </div>
                             <div className="form-group">
                                 <label className="form-label">Address *</label>
-                                <input type="text" className="form-input" value={pharmacyForm.address} onChange={e => setPharmacyForm({ ...pharmacyForm, address: e.target.value })} required />
+                                <input type="text" className="form-input" value={formData.address} onChange={e => setFormData({ ...formData, address: e.target.value })} required />
                             </div>
                             <div className="form-group">
-                                <label className="form-label">City</label>
-                                <input type="text" className="form-input" value={pharmacyForm.city} onChange={e => setPharmacyForm({ ...pharmacyForm, city: e.target.value })} />
+                                <label className="form-label">City *</label>
+                                <input type="text" className="form-input" value={formData.city} onChange={e => setFormData({ ...formData, city: e.target.value })} required />
                             </div>
                             <div className="form-group">
                                 <label className="form-label">State</label>
-                                <input type="text" className="form-input" placeholder="e.g., Maharashtra" value={pharmacyForm.state} onChange={e => setPharmacyForm({ ...pharmacyForm, state: e.target.value })} />
+                                <input type="text" className="form-input" value={formData.state} onChange={e => setFormData({ ...formData, state: e.target.value })} />
                             </div>
                             <div className="form-group">
                                 <label className="form-label">Pincode</label>
-                                <input type="text" className="form-input" placeholder="e.g., 400001" value={pharmacyForm.pincode} onChange={e => setPharmacyForm({ ...pharmacyForm, pincode: e.target.value })} />
+                                <input type="text" className="form-input" value={formData.pincode} onChange={e => setFormData({ ...formData, pincode: e.target.value })} />
                             </div>
                             <div className="form-group">
                                 <label className="form-label">Contact *</label>
-                                <input type="text" className="form-input" value={pharmacyForm.contact} onChange={e => setPharmacyForm({ ...pharmacyForm, contact: e.target.value })} required />
+                                <input type="text" className="form-input" value={formData.contact} onChange={e => setFormData({ ...formData, contact: e.target.value })} required />
                             </div>
                             <div className="form-group">
                                 <label className="form-label">Hours *</label>
-                                <input type="text" className="form-input" placeholder="e.g., 8 AM - 10 PM" value={pharmacyForm.hours} onChange={e => setPharmacyForm({ ...pharmacyForm, hours: e.target.value })} required />
-                            </div>
-                            <div className="form-group">
-                                <label className="form-label">Email</label>
-                                <input type="email" className="form-input" value={pharmacyForm.email} onChange={e => setPharmacyForm({ ...pharmacyForm, email: e.target.value })} />
-                            </div>
-                            <div className="form-group">
-                                <label className="form-label">Delivery Available</label>
-                                <select className="form-select" value={pharmacyForm.delivers} onChange={e => setPharmacyForm({ ...pharmacyForm, delivers: e.target.value === 'true' })}>
-                                    <option value="true">Yes</option>
-                                    <option value="false">No</option>
-                                </select>
+                                <input type="text" className="form-input" placeholder="e.g., 8 AM - 10 PM" value={formData.hours} onChange={e => setFormData({ ...formData, hours: e.target.value })} required />
                             </div>
                         </div>
+
+                        <div style={{ marginTop: '1rem', padding: '1rem', background: 'var(--gray-50)', borderRadius: '8px' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                                <h4 style={{ margin: 0 }}>💊 Select CKD Medicines ({selectedMedicines.length} selected)</h4>
+                                <button type="button" className="btn btn-sm" onClick={selectAllMedicines} style={{ padding: '0.25rem 0.75rem' }}>
+                                    {selectedMedicines.length === commonMedicines.length ? 'Deselect All' : 'Select All'}
+                                </button>
+                            </div>
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '0.5rem' }}>
+                                {commonMedicines.map((med, idx) => (
+                                    <label key={idx} style={{
+                                        display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 0.75rem',
+                                        background: selectedMedicines.includes(idx) ? 'var(--primary-50)' : 'white',
+                                        border: selectedMedicines.includes(idx) ? '2px solid var(--primary-500)' : '1px solid var(--gray-200)',
+                                        borderRadius: '6px', cursor: 'pointer', transition: 'all 0.2s'
+                                    }}>
+                                        <input
+                                            type="checkbox"
+                                            checked={selectedMedicines.includes(idx)}
+                                            onChange={() => toggleMedicine(idx)}
+                                            style={{ width: '18px', height: '18px', accentColor: 'var(--primary-500)' }}
+                                        />
+                                        <div style={{ flex: 1 }}>
+                                            <div style={{ fontWeight: '500', fontSize: '0.85rem' }}>{med.name}</div>
+                                            <div style={{ fontSize: '0.75rem', color: 'var(--gray-500)' }}>{med.category}</div>
+                                        </div>
+                                    </label>
+                                ))}
+                            </div>
+                        </div>
+
                         <div className="flex gap-3 mt-4">
-                            <button type="submit" className="btn btn-primary">Add Pharmacy</button>
-                            <button type="button" className="btn btn-secondary" onClick={() => setShowPharmacyForm(false)}>Cancel</button>
+                            <button type="submit" className="btn btn-primary">Add Medical Store</button>
+                            <button type="button" className="btn btn-secondary" onClick={() => setShowForm(false)}>Cancel</button>
                         </div>
                     </form>
                 </div>
             )}
 
-            {showMedicineForm && (
-                <div className="card mb-6 animate-fadeIn">
-                    <h3 className="mb-4">Add New Medicine</h3>
-                    <form onSubmit={handleAddMedicine}>
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="form-group">
-                                <label className="form-label">Name *</label>
-                                <input type="text" className="form-input" value={medicineForm.name} onChange={e => setMedicineForm({ ...medicineForm, name: e.target.value })} required />
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))', gap: '1.5rem' }}>
+                {medicals.map(medical => (
+                    <div key={medical._id} className="card" style={{ cursor: 'pointer', transition: 'all 0.3s', border: selectedMedical?._id === medical._id ? '2px solid var(--primary-500)' : '1px solid var(--gray-200)' }} onClick={() => setSelectedMedical(selectedMedical?._id === medical._id ? null : medical)}>
+                        <div className="flex justify-between items-start mb-3">
+                            <div>
+                                <h3 style={{ marginBottom: '0.25rem' }}>{medical.name}</h3>
+                                <span className="badge badge-primary">{medical.type}</span>
                             </div>
-                            <div className="form-group">
-                                <label className="form-label">Category *</label>
-                                <select className="form-select" value={medicineForm.category} onChange={e => setMedicineForm({ ...medicineForm, category: e.target.value })}>
-                                    {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                                </select>
-                            </div>
-                            <div className="form-group col-span-2">
-                                <label className="form-label">Purpose *</label>
-                                <input type="text" className="form-input" value={medicineForm.purpose} onChange={e => setMedicineForm({ ...medicineForm, purpose: e.target.value })} required />
-                            </div>
-                            <div className="form-group">
-                                <label className="form-label">Dosage</label>
-                                <input type="text" className="form-input" value={medicineForm.common_dosage} onChange={e => setMedicineForm({ ...medicineForm, common_dosage: e.target.value })} />
-                            </div>
-                            <div className="form-group">
-                                <label className="form-label">Price Range</label>
-                                <input type="text" className="form-input" placeholder="e.g., ₹50-200" value={medicineForm.price_range} onChange={e => setMedicineForm({ ...medicineForm, price_range: e.target.value })} />
-                            </div>
-                            <div className="form-group">
-                                <label className="form-label">CKD Relevance</label>
-                                <select className="form-select" value={medicineForm.ckd_relevance} onChange={e => setMedicineForm({ ...medicineForm, ckd_relevance: e.target.value })}>
-                                    <option value="High">High</option>
-                                    <option value="Medium">Medium</option>
-                                    <option value="Low">Low</option>
-                                </select>
-                            </div>
-                            <div className="form-group">
-                                <label className="form-label">Prescription Required</label>
-                                <select className="form-select" value={medicineForm.requires_prescription} onChange={e => setMedicineForm({ ...medicineForm, requires_prescription: e.target.value === 'true' })}>
-                                    <option value="true">Yes</option>
-                                    <option value="false">No</option>
-                                </select>
-                            </div>
-                            <div className="form-group col-span-2">
-                                <label className="form-label">Notes</label>
-                                <textarea className="form-input" rows="2" value={medicineForm.notes} onChange={e => setMedicineForm({ ...medicineForm, notes: e.target.value })}></textarea>
-                            </div>
+                            <button className="btn btn-sm btn-danger" onClick={(e) => { e.stopPropagation(); handleDeleteMedical(medical._id); }}>
+                                <FaTrash />
+                            </button>
                         </div>
-                        <div className="flex gap-3 mt-4">
-                            <button type="submit" className="btn btn-primary">Add Medicine</button>
-                            <button type="button" className="btn btn-secondary" onClick={() => setShowMedicineForm(false)}>Cancel</button>
-                        </div>
-                    </form>
-                </div>
-            )}
 
-            {activeTab === 'pharmacies' ? (
-                <div className="table-container card">
-                    <table className="data-table">
-                        <thead>
-                            <tr><th>Name</th><th>Type</th><th>Location</th><th>Contact</th><th>Hours</th><th>Medicines</th><th>Delivery</th><th>Actions</th></tr>
-                        </thead>
-                        <tbody>
-                            {pharmacies.map(p => (
-                                <tr key={p._id}>
-                                    <td><strong>{p.name}</strong></td>
-                                    <td><span className="badge badge-primary">{p.type}</span></td>
-                                    <td>
-                                        <div style={{ fontSize: '0.9rem' }}>{p.address}</div>
-                                        <div style={{ fontSize: '0.8rem', color: 'var(--gray-500)' }}>{p.city}{p.state ? `, ${p.state}` : ''}{p.pincode ? ` - ${p.pincode}` : ''}</div>
-                                    </td>
-                                    <td>{p.contact}</td>
-                                    <td>{p.hours}</td>
-                                    <td>
-                                        <span className="badge badge-primary">{p.total_medicines || p.available_medicines?.length || 0} medicines</span>
-                                    </td>
-                                    <td>{p.delivers ? <span className="badge badge-success">Yes</span> : <span className="badge badge-error">No</span>}</td>
-                                    <td>
-                                        <button className="btn btn-sm btn-danger" onClick={() => handleDeletePharmacy(p._id)}><FaTrash /></button>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
-            ) : (
-                <div className="table-container card">
-                    <table className="data-table">
-                        <thead>
-                            <tr><th>Name</th><th>Category</th><th>Purpose</th><th>Dosage</th><th>Rx</th><th>CKD Relevance</th><th>Actions</th></tr>
-                        </thead>
-                        <tbody>
-                            {medicines.map(m => (
-                                <tr key={m._id}>
-                                    <td><strong>{m.name}</strong></td>
-                                    <td><span className="badge badge-primary">{m.category_name}</span></td>
-                                    <td>{m.purpose}</td>
-                                    <td>{m.common_dosage}</td>
-                                    <td>{m.requires_prescription ? <span className="badge badge-warning">Rx</span> : <span className="badge badge-success">OTC</span>}</td>
-                                    <td><span className={`badge ${m.ckd_relevance === 'High' ? 'badge-error' : m.ckd_relevance === 'Medium' ? 'badge-warning' : 'badge-success'}`}>{m.ckd_relevance}</span></td>
-                                    <td>
-                                        <button className="btn btn-sm btn-danger" onClick={() => handleDeleteMedicine(m._id)}><FaTrash /></button>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                        <div style={{ fontSize: '0.9rem', color: 'var(--gray-600)', marginBottom: '0.5rem' }}>
+                            <p>📍 {medical.address}, {medical.city}{medical.state ? `, ${medical.state}` : ''}{medical.pincode ? ` - ${medical.pincode}` : ''}</p>
+                            <p>📞 {medical.contact} | ⏰ {medical.hours}</p>
+                        </div>
+
+                        <div className="flex gap-2 mt-2">
+                            <span className="badge badge-success">{medical.total_medicines || medical.available_medicines?.length || 12} Medicines</span>
+                            {medical.delivers && <span className="badge badge-warning">Home Delivery</span>}
+                        </div>
+
+                        {selectedMedical?._id === medical._id && (
+                            <div style={{ marginTop: '1rem', padding: '1rem', background: 'var(--gray-50)', borderRadius: '8px' }}>
+                                <h4 style={{ marginBottom: '0.75rem' }}>💊 Available CKD Medicines</h4>
+                                <div style={{ display: 'grid', gap: '0.5rem' }}>
+                                    {(medical.available_medicines?.length > 0 ? medical.available_medicines : commonMedicines).map((med, idx) => (
+                                        <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', padding: '0.5rem', background: 'white', borderRadius: '6px', fontSize: '0.85rem' }}>
+                                            <span><strong>{med.name}</strong></span>
+                                            <span style={{ color: 'var(--primary-500)' }}>{med.category}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                ))}
+            </div>
+
+            {medicals.length === 0 && (
+                <div className="card" style={{ textAlign: 'center', padding: '3rem' }}>
+                    <FaPills style={{ fontSize: '3rem', color: 'var(--gray-300)', marginBottom: '1rem' }} />
+                    <h3>No Medical Stores Added</h3>
+                    <p style={{ color: 'var(--gray-500)' }}>Add medical stores with CKD medicines for patients</p>
                 </div>
             )}
         </div>
     );
 };
+
+
 
 // Main Admin Dashboard
 const AdminDashboard = () => {
@@ -621,7 +573,7 @@ const AdminDashboard = () => {
                     <Link to="/admin" className="nav-item"><FaChartBar /> Dashboard</Link>
                     <Link to="/admin/users" className="nav-item"><FaUsers /> Users</Link>
                     <Link to="/admin/doctors" className="nav-item"><FaUserMd /> Doctors</Link>
-                    <Link to="/admin/pharmacy" className="nav-item"><FaPills /> Pharmacy</Link>
+                    <Link to="/admin/pharmacy" className="nav-item"><FaPills /> Medical</Link>
                     <Link to="/admin/appointments" className="nav-item"><FaCalendarAlt /> Appointments</Link>
                 </nav>
                 <div className="sidebar-footer">
@@ -640,7 +592,7 @@ const AdminDashboard = () => {
                     <Route path="/" element={<AdminOverview />} />
                     <Route path="/users" element={<UsersManagement />} />
                     <Route path="/doctors" element={<DoctorManagement />} />
-                    <Route path="/pharmacy" element={<PharmacyManagement />} />
+                    <Route path="/pharmacy" element={<MedicalManagement />} />
                     <Route path="/appointments" element={<AppointmentsOverview />} />
                 </Routes>
             </main>

@@ -494,33 +494,30 @@ const DonorMatching = () => {
     );
 };
 
-// Pharmacy & Medicine Component with Search
+// Medicine Search Component - Find medicines and medical stores
 const PharmacyMedicine = () => {
-    const [medications, setMedications] = useState({});
-    const [pharmacies, setPharmacies] = useState([]);
-    const [searchResults, setSearchResults] = useState(null);
+    const [medicals, setMedicals] = useState([]);
     const [searchQuery, setSearchQuery] = useState('');
-    const [searchType, setSearchType] = useState('medicines'); // 'medicines' or 'pharmacies'
+    const [searchResults, setSearchResults] = useState(null);
     const [loading, setLoading] = useState(true);
     const [searching, setSearching] = useState(false);
-    const [categories, setCategories] = useState([]);
-    const [selectedCategory, setSelectedCategory] = useState('');
     const { getToken } = useAuth();
 
+    // Common CKD Medicines list for quick search
+    const commonMedicines = [
+        'Lisinopril', 'Losartan', 'Amlodipine', 'Metformin', 'Dapagliflozin',
+        'Furosemide', 'Erythropoietin', 'Iron Supplements', 'Calcium Acetate',
+        'Vitamin D', 'Sodium Bicarbonate', 'Atorvastatin'
+    ];
+
     useEffect(() => {
-        fetchData();
+        fetchMedicals();
     }, []);
 
-    const fetchData = async () => {
+    const fetchMedicals = async () => {
         try {
-            const [medsRes, pharmaRes, catsRes] = await Promise.all([
-                axios.get(`${API_URL}/pharmacy/medications`),
-                axios.get(`${API_URL}/pharmacy/pharmacies`),
-                axios.get(`${API_URL}/pharmacy/categories`)
-            ]);
-            if (medsRes.data.success) setMedications(medsRes.data.medications || {});
-            if (pharmaRes.data.success) setPharmacies(pharmaRes.data.pharmacies || []);
-            if (catsRes.data.success) setCategories(catsRes.data.categories || []);
+            const res = await axios.get(`${API_URL}/pharmacy/pharmacies`);
+            if (res.data.success) setMedicals(res.data.pharmacies || []);
         } catch (error) {
             console.error('Error:', error);
         } finally {
@@ -528,31 +525,40 @@ const PharmacyMedicine = () => {
         }
     };
 
-    const handleSearch = async () => {
-        if (!searchQuery.trim()) {
+    const searchMedicine = (query) => {
+        if (!query.trim()) {
             setSearchResults(null);
             return;
         }
         setSearching(true);
-        try {
-            const endpoint = searchType === 'medicines'
-                ? `${API_URL}/pharmacy/search/medicines?q=${encodeURIComponent(searchQuery)}${selectedCategory ? `&category=${selectedCategory}` : ''}`
-                : `${API_URL}/pharmacy/search/pharmacies?q=${encodeURIComponent(searchQuery)}`;
-            const res = await axios.get(endpoint);
-            if (res.data.success) {
-                setSearchResults(searchType === 'medicines' ? res.data.medicines : res.data.pharmacies);
-            }
-        } catch (error) {
-            toast.error('Search failed');
-        } finally {
-            setSearching(false);
-        }
+        const lowerQuery = query.toLowerCase();
+
+        // Find all medicals that have this medicine
+        const results = medicals.filter(medical => {
+            if (!medical.available_medicines || medical.available_medicines.length === 0) return false;
+            return medical.available_medicines.some(med =>
+                med.name?.toLowerCase().includes(lowerQuery) ||
+                med.category?.toLowerCase().includes(lowerQuery)
+            );
+        }).map(medical => ({
+            ...medical,
+            matchedMedicines: medical.available_medicines.filter(med =>
+                med.name?.toLowerCase().includes(lowerQuery) ||
+                med.category?.toLowerCase().includes(lowerQuery)
+            )
+        }));
+
+        setSearchResults(results);
+        setSearching(false);
+    };
+
+    const handleSearch = () => {
+        searchMedicine(searchQuery);
     };
 
     const clearSearch = () => {
         setSearchQuery('');
         setSearchResults(null);
-        setSelectedCategory('');
     };
 
     if (loading) return <div className="loading-overlay"><div className="spinner"></div></div>;
@@ -560,79 +566,101 @@ const PharmacyMedicine = () => {
     return (
         <div className="page-content animate-fadeIn">
             <div className="page-header">
-                <h1><FaPills /> Pharmacy & Medicines</h1>
-                <p>Search CKD medications and find nearby pharmacies</p>
+                <h1><FaPills /> Find CKD Medicines</h1>
+                <p>Search medicines and find medical stores that have them</p>
             </div>
 
             {/* Search Section */}
-            <div className="card" style={{ marginBottom: '2rem' }}>
-                <h3 style={{ marginBottom: '1rem' }}>🔍 Search Medicines & Pharmacies</h3>
-                <div className="flex gap-3 mb-4" style={{ flexWrap: 'wrap' }}>
-                    <div className="filter-tabs" style={{ marginBottom: 0 }}>
-                        <button className={`filter-tab ${searchType === 'medicines' ? 'active' : ''}`} onClick={() => { setSearchType('medicines'); clearSearch(); }}>Medicines</button>
-                        <button className={`filter-tab ${searchType === 'pharmacies' ? 'active' : ''}`} onClick={() => { setSearchType('pharmacies'); clearSearch(); }}>Pharmacies</button>
-                    </div>
-                </div>
+            <div className="card" style={{ marginBottom: '2rem', background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', color: 'white' }}>
+                <h3 style={{ marginBottom: '1rem', color: 'white' }}>🔍 Search Medicine</h3>
                 <div className="flex gap-3" style={{ flexWrap: 'wrap' }}>
                     <input
                         type="text"
                         className="form-input"
-                        placeholder={searchType === 'medicines' ? 'Search medicine name, purpose...' : 'Search pharmacy name, city...'}
+                        placeholder="Enter medicine name (e.g., Lisinopril, Losartan...)"
                         value={searchQuery}
                         onChange={e => setSearchQuery(e.target.value)}
                         onKeyPress={e => e.key === 'Enter' && handleSearch()}
-                        style={{ flex: '1', minWidth: '200px' }}
+                        style={{ flex: '1', minWidth: '250px', background: 'rgba(255,255,255,0.95)', color: '#333' }}
                     />
-                    {searchType === 'medicines' && (
-                        <select className="form-select" value={selectedCategory} onChange={e => setSelectedCategory(e.target.value)} style={{ width: 'auto' }}>
-                            <option value="">All Categories</option>
-                            {categories.map(cat => <option key={cat.id} value={cat.id}>{cat.name}</option>)}
-                        </select>
-                    )}
-                    <button className="btn btn-primary" onClick={handleSearch} disabled={searching}>
+                    <button className="btn" onClick={handleSearch} disabled={searching} style={{ background: 'white', color: '#764ba2', fontWeight: '600' }}>
                         {searching ? <FaSpinner className="spin" /> : 'Search'}
                     </button>
-                    {searchResults && <button className="btn btn-secondary" onClick={clearSearch}>Clear</button>}
+                    {searchResults && <button className="btn" onClick={clearSearch} style={{ background: 'rgba(255,255,255,0.3)', color: 'white' }}>Clear</button>}
+                </div>
+
+                {/* Quick Search Pills */}
+                <div style={{ marginTop: '1rem' }}>
+                    <p style={{ fontSize: '0.85rem', marginBottom: '0.5rem', opacity: 0.9 }}>Quick Search:</p>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+                        {commonMedicines.map((med, idx) => (
+                            <button
+                                key={idx}
+                                onClick={() => { setSearchQuery(med); searchMedicine(med); }}
+                                style={{
+                                    padding: '0.25rem 0.75rem',
+                                    background: 'rgba(255,255,255,0.2)',
+                                    border: '1px solid rgba(255,255,255,0.4)',
+                                    borderRadius: '20px',
+                                    color: 'white',
+                                    fontSize: '0.8rem',
+                                    cursor: 'pointer',
+                                    transition: 'all 0.2s'
+                                }}
+                            >
+                                {med}
+                            </button>
+                        ))}
+                    </div>
                 </div>
             </div>
 
             {/* Search Results */}
             {searchResults && (
                 <div className="card" style={{ marginBottom: '2rem' }}>
-                    <h3 style={{ marginBottom: '1rem' }}>Search Results ({searchResults.length})</h3>
+                    <h3 style={{ marginBottom: '1rem' }}>
+                        📍 Medical Stores with "{searchQuery}" ({searchResults.length} found)
+                    </h3>
                     {searchResults.length === 0 ? (
-                        <p style={{ color: 'var(--gray-500)' }}>No results found for "{searchQuery}"</p>
-                    ) : searchType === 'medicines' ? (
-                        <div className="med-categories">
-                            {searchResults.map((med, idx) => (
-                                <div key={idx} className="med-category" style={{ flexBasis: '100%', maxWidth: '100%' }}>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                                        <h4 style={{ margin: 0 }}>{med.name}</h4>
-                                        <div className="flex gap-2">
-                                            <span className={`badge ${med.ckd_relevance === 'High' ? 'badge-error' : med.ckd_relevance === 'Medium' ? 'badge-warning' : 'badge-success'}`}>{med.ckd_relevance} CKD Relevance</span>
-                                            <span className={`badge ${med.requires_prescription ? 'badge-warning' : 'badge-success'}`}>{med.requires_prescription ? 'Rx Required' : 'OTC'}</span>
-                                        </div>
-                                    </div>
-                                    <p><strong>Purpose:</strong> {med.purpose}</p>
-                                    <p><strong>Category:</strong> {med.category_name}</p>
-                                    {med.notes && <p><strong>Notes:</strong> {med.notes}</p>}
-                                    <p><strong>Price Range:</strong> {med.price_range || 'N/A'}</p>
-                                </div>
-                            ))}
+                        <div style={{ textAlign: 'center', padding: '2rem' }}>
+                            <FaPills style={{ fontSize: '3rem', color: 'var(--gray-300)', marginBottom: '1rem' }} />
+                            <p style={{ color: 'var(--gray-500)' }}>No medical store found with "{searchQuery}"</p>
+                            <p style={{ color: 'var(--gray-400)', fontSize: '0.9rem' }}>Try searching for a different medicine</p>
                         </div>
                     ) : (
-                        <div className="pharmacy-list">
-                            {searchResults.map((pharmacy, idx) => (
-                                <div key={idx} className="pharmacy-item">
-                                    <div className="pharmacy-info">
-                                        <h4>{pharmacy.name}</h4>
-                                        <p>{pharmacy.address}, {pharmacy.city}</p>
-                                        <p>{pharmacy.hours} | {pharmacy.contact}</p>
-                                        {pharmacy.rating && <p>⭐ {pharmacy.rating}/5</p>}
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))', gap: '1rem' }}>
+                            {searchResults.map((medical, idx) => (
+                                <div key={idx} style={{
+                                    padding: '1.25rem',
+                                    background: 'var(--gray-50)',
+                                    borderRadius: '12px',
+                                    border: '1px solid var(--gray-200)'
+                                }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.75rem' }}>
+                                        <div>
+                                            <h4 style={{ margin: 0, fontSize: '1.1rem' }}>{medical.name}</h4>
+                                            <span className="badge badge-primary" style={{ marginTop: '0.25rem' }}>{medical.type}</span>
+                                        </div>
+                                        {medical.delivers && <span className="badge badge-success">Delivery</span>}
                                     </div>
-                                    <div className="pharmacy-badges">
-                                        {pharmacy.delivers && <span className="badge badge-success">Delivery</span>}
-                                        <span className="badge badge-primary">{pharmacy.type}</span>
+
+                                    <div style={{ fontSize: '0.9rem', color: 'var(--gray-600)', marginBottom: '0.75rem' }}>
+                                        <p style={{ margin: '0.25rem 0' }}>📍 {medical.address}, {medical.city}{medical.state ? `, ${medical.state}` : ''}</p>
+                                        <p style={{ margin: '0.25rem 0' }}>📞 {medical.contact}</p>
+                                        <p style={{ margin: '0.25rem 0' }}>⏰ {medical.hours}</p>
+                                    </div>
+
+                                    <div style={{ marginTop: '0.75rem', paddingTop: '0.75rem', borderTop: '1px solid var(--gray-200)' }}>
+                                        <p style={{ fontWeight: '600', fontSize: '0.85rem', marginBottom: '0.5rem', color: 'var(--primary-600)' }}>
+                                            💊 Matched Medicines ({medical.matchedMedicines?.length}):
+                                        </p>
+                                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.25rem' }}>
+                                            {medical.matchedMedicines?.map((med, i) => (
+                                                <span key={i} className="badge badge-warning" style={{ fontSize: '0.75rem' }}>
+                                                    {med.name}
+                                                </span>
+                                            ))}
+                                        </div>
                                     </div>
                                 </div>
                             ))}
@@ -641,63 +669,56 @@ const PharmacyMedicine = () => {
                 </div>
             )}
 
-            {/* Default Content - Show when not searching */}
+            {/* All Medical Stores - Show when not searching */}
             {!searchResults && (
-                <>
-                    <div className="card">
-                        <h3 style={{ marginBottom: '1rem' }}>CKD Medication Categories</h3>
-                        <div className="med-categories">
-                            {Object.entries(medications).map(([key, category]) => (
-                                <div key={key} className="med-category">
-                                    <h4>{category.category}</h4>
-                                    <ul>
-                                        {category.medications?.slice(0, 3).map((med, idx) => (
-                                            <li key={idx}>
-                                                <strong>{med.name}</strong>
-                                                <span>{med.purpose}</span>
-                                                {med.price_range && <small style={{ color: 'var(--gray-500)' }}>{med.price_range}</small>}
-                                            </li>
-                                        ))}
-                                    </ul>
+                <div className="card">
+                    <h3 style={{ marginBottom: '1rem' }}><FaClinicMedical /> All Medical Stores</h3>
+                    {medicals.length === 0 ? (
+                        <div style={{ textAlign: 'center', padding: '2rem' }}>
+                            <FaClinicMedical style={{ fontSize: '3rem', color: 'var(--gray-300)', marginBottom: '1rem' }} />
+                            <p style={{ color: 'var(--gray-500)' }}>No medical stores available</p>
+                        </div>
+                    ) : (
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '1rem' }}>
+                            {medicals.map((medical, idx) => (
+                                <div key={idx} style={{
+                                    padding: '1rem',
+                                    background: 'var(--gray-50)',
+                                    borderRadius: '10px',
+                                    border: '1px solid var(--gray-200)'
+                                }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem' }}>
+                                        <h4 style={{ margin: 0 }}>{medical.name}</h4>
+                                        <span className="badge badge-primary">{medical.type}</span>
+                                    </div>
+                                    <p style={{ fontSize: '0.85rem', color: 'var(--gray-600)', margin: '0.25rem 0' }}>
+                                        📍 {medical.address}, {medical.city}
+                                    </p>
+                                    <p style={{ fontSize: '0.85rem', color: 'var(--gray-600)', margin: '0.25rem 0' }}>
+                                        📞 {medical.contact} | ⏰ {medical.hours}
+                                    </p>
+                                    <div style={{ marginTop: '0.5rem', display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                                        <span className="badge badge-success">
+                                            {medical.total_medicines || medical.available_medicines?.length || 0} Medicines
+                                        </span>
+                                        {medical.delivers && <span className="badge badge-warning">Delivery Available</span>}
+                                    </div>
                                 </div>
                             ))}
                         </div>
-                    </div>
-
-                    <div className="card" style={{ marginTop: '2rem' }}>
-                        <h3 style={{ marginBottom: '1rem' }}><FaClinicMedical /> Nearby Pharmacies</h3>
-                        {pharmacies.length === 0 ? (
-                            <p style={{ color: 'var(--gray-500)' }}>No pharmacies found nearby.</p>
-                        ) : (
-                            <div className="pharmacy-list">
-                                {pharmacies.map((pharmacy, idx) => (
-                                    <div key={idx} className="pharmacy-item">
-                                        <div className="pharmacy-info">
-                                            <h4>{pharmacy.name}</h4>
-                                            <p>{pharmacy.address ? `${pharmacy.address}` : `${pharmacy.distance} away`}</p>
-                                            <p style={{ fontSize: '0.85rem', color: 'var(--gray-500)' }}>
-                                                {pharmacy.city}{pharmacy.state ? `, ${pharmacy.state}` : ''}{pharmacy.pincode ? ` - ${pharmacy.pincode}` : ''}
-                                            </p>
-                                            <p><FaPhoneAlt style={{ marginRight: '4px' }} />{pharmacy.contact} | {pharmacy.hours}</p>
-                                            {pharmacy.rating && <p>⭐ {pharmacy.rating}/5</p>}
-                                        </div>
-                                        <div className="pharmacy-badges">
-                                            {pharmacy.delivers && <span className="badge badge-success">Delivery</span>}
-                                            <span className="badge badge-primary">{pharmacy.type}</span>
-                                            {(pharmacy.total_medicines || pharmacy.available_medicines?.length > 0) && (
-                                                <span className="badge badge-warning">{pharmacy.total_medicines || pharmacy.available_medicines?.length} medicines</span>
-                                            )}
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        )}
-                    </div>
-                </>
+                    )}
+                </div>
             )}
         </div>
     );
 };
+
+
+
+
+
+
+
 
 // AI Recommendations Component (Gemini-powered)
 const AIRecommendations = () => {
