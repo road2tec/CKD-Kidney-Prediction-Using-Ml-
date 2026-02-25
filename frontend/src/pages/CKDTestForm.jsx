@@ -1,12 +1,15 @@
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { FaFlask, FaBrain, FaAppleAlt, FaChevronRight, FaChevronLeft, FaCheckCircle, FaExclamationTriangle, FaInfoCircle, FaDownload, FaBalanceScale, FaPills, FaVideo } from 'react-icons/fa';
 import { toast } from 'react-toastify';
 import axios from 'axios';
 import { saveAs } from 'file-saver';
 import { useAuth, API_URL } from '../App';
+import { DynamicText } from '../context/TranslationContext';
 import './CKDTestForm.css';
 
 const CKDTestForm = () => {
+    const { t } = useTranslation();
     const [currentStep, setCurrentStep] = useState(0);
     const [formData, setFormData] = useState({
         age: '',
@@ -45,11 +48,11 @@ const CKDTestForm = () => {
     const { getToken } = useAuth();
 
     const steps = [
-        { title: 'Basic Info', icon: '👤', description: 'Age & Blood Pressure' },
-        { title: 'Urine Tests', icon: '🧪', description: 'Urine Analysis Results' },
-        { title: 'Blood Tests', icon: '💉', description: 'Blood Work Results' },
-        { title: 'Medical History', icon: '📋', description: 'Health Conditions' },
-        { title: 'Results', icon: '📊', description: 'Hybrid AI Analysis' }
+        { title: t('ckdForm.basicInfo', 'Basic Info'), icon: '👤', description: t('ckdForm.ageBloodPressure', 'Age & Blood Pressure') },
+        { title: t('ckdForm.urineTests', 'Urine Tests'), icon: '🧪', description: t('ckdForm.urineAnalysis', 'Urine Analysis Results') },
+        { title: t('ckdForm.bloodTests', 'Blood Tests'), icon: '💉', description: t('ckdForm.bloodWork', 'Blood Work Results') },
+        { title: t('ckdForm.medicalHistory', 'Medical History'), icon: '📋', description: t('ckdForm.healthConditions', 'Health Conditions') },
+        { title: t('ckdForm.results', 'Results'), icon: '📊', description: t('ckdForm.hybridAI', 'Hybrid AI Analysis') }
     ];
 
     const handleInputChange = (e) => {
@@ -212,28 +215,28 @@ const CKDTestForm = () => {
                 return (
                     <div className="gemini-step-content">
                         <div className="gemini-input-group">
-                            <label>Age (years)</label>
+                            <label>{t('ckdForm.age')}</label>
                             <input
                                 type="number"
                                 name="age"
                                 value={formData.age}
                                 onChange={handleInputChange}
-                                placeholder="Enter your age"
+                                placeholder={t('ckdForm.enterAge')}
                                 className="gemini-input"
                             />
-                            <span className="input-hint">Normal range: 18-100</span>
+                            <span className="input-hint">{t('ckdForm.normalRange')}: 18-100</span>
                         </div>
                         <div className="gemini-input-group">
-                            <label>Blood Pressure (mm/Hg)</label>
+                            <label>{t('ckdForm.bloodPressure')}</label>
                             <input
                                 type="number"
                                 name="bp"
                                 value={formData.bp}
                                 onChange={handleInputChange}
-                                placeholder="Diastolic BP (e.g., 80)"
+                                placeholder={t('ckdForm.diastolicBP')}
                                 className="gemini-input"
                             />
-                            <span className="input-hint">Normal: 60-80 mm/Hg</span>
+                            <span className="input-hint">{t('ckdForm.normalRange')}: 60-80 mm/Hg</span>
                         </div>
                     </div>
                 );
@@ -243,7 +246,7 @@ const CKDTestForm = () => {
                     <div className="gemini-step-content">
                         <div className="gemini-input-row">
                             <div className="gemini-input-group">
-                                <label>Specific Gravity</label>
+                                <label>{t('ckdForm.specificGravity')}</label>
                                 <select name="sg" value={formData.sg} onChange={handleInputChange} className="gemini-select">
                                     <option value="1.005">1.005</option>
                                     <option value="1.010">1.010</option>
@@ -253,13 +256,13 @@ const CKDTestForm = () => {
                                 </select>
                             </div>
                             <div className="gemini-input-group">
-                                <label>Albumin (0-5)</label>
+                                <label>{t('ckdForm.albumin')}</label>
                                 <select name="al" value={formData.al} onChange={handleInputChange} className="gemini-select">
                                     {[0, 1, 2, 3, 4, 5].map(v => <option key={v} value={v}>{v}</option>)}
                                 </select>
                             </div>
                             <div className="gemini-input-group">
-                                <label>Sugar (0-5)</label>
+                                <label>{t('ckdForm.sugar')}</label>
                                 <select name="su" value={formData.su} onChange={handleInputChange} className="gemini-select">
                                     {[0, 1, 2, 3, 4, 5].map(v => <option key={v} value={v}>{v}</option>)}
                                 </select>
@@ -267,33 +270,33 @@ const CKDTestForm = () => {
                         </div>
                         <div className="gemini-input-row">
                             <div className="gemini-input-group">
-                                <label>Red Blood Cells</label>
+                                <label>{t('ckdForm.redBloodCells')}</label>
                                 <div className="gemini-toggle-group">
-                                    <button type="button" className={`gemini-toggle ${formData.rbc === 'normal' ? 'active' : ''}`} onClick={() => setFormData(p => ({ ...p, rbc: 'normal' }))}>Normal</button>
-                                    <button type="button" className={`gemini-toggle ${formData.rbc === 'abnormal' ? 'active' : ''}`} onClick={() => setFormData(p => ({ ...p, rbc: 'abnormal' }))}>Abnormal</button>
+                                    <button type="button" className={`gemini-toggle ${formData.rbc === 'normal' ? 'active' : ''}`} onClick={() => setFormData(p => ({ ...p, rbc: 'normal' }))}>{t('ckdForm.normal')}</button>
+                                    <button type="button" className={`gemini-toggle ${formData.rbc === 'abnormal' ? 'active' : ''}`} onClick={() => setFormData(p => ({ ...p, rbc: 'abnormal' }))}>{t('ckdForm.abnormal')}</button>
                                 </div>
                             </div>
                             <div className="gemini-input-group">
-                                <label>Pus Cell</label>
+                                <label>{t('ckdForm.pusCell')}</label>
                                 <div className="gemini-toggle-group">
-                                    <button type="button" className={`gemini-toggle ${formData.pc === 'normal' ? 'active' : ''}`} onClick={() => setFormData(p => ({ ...p, pc: 'normal' }))}>Normal</button>
-                                    <button type="button" className={`gemini-toggle ${formData.pc === 'abnormal' ? 'active' : ''}`} onClick={() => setFormData(p => ({ ...p, pc: 'abnormal' }))}>Abnormal</button>
+                                    <button type="button" className={`gemini-toggle ${formData.pc === 'normal' ? 'active' : ''}`} onClick={() => setFormData(p => ({ ...p, pc: 'normal' }))}>{t('ckdForm.normal')}</button>
+                                    <button type="button" className={`gemini-toggle ${formData.pc === 'abnormal' ? 'active' : ''}`} onClick={() => setFormData(p => ({ ...p, pc: 'abnormal' }))}>{t('ckdForm.abnormal')}</button>
                                 </div>
                             </div>
                         </div>
                         <div className="gemini-input-row">
                             <div className="gemini-input-group">
-                                <label>Pus Cell Clumps</label>
+                                <label>{t('ckdForm.pusCellClumps')}</label>
                                 <div className="gemini-toggle-group">
-                                    <button type="button" className={`gemini-toggle ${formData.pcc === 'notpresent' ? 'active' : ''}`} onClick={() => setFormData(p => ({ ...p, pcc: 'notpresent' }))}>Not Present</button>
-                                    <button type="button" className={`gemini-toggle ${formData.pcc === 'present' ? 'active' : ''}`} onClick={() => setFormData(p => ({ ...p, pcc: 'present' }))}>Present</button>
+                                    <button type="button" className={`gemini-toggle ${formData.pcc === 'notpresent' ? 'active' : ''}`} onClick={() => setFormData(p => ({ ...p, pcc: 'notpresent' }))}>{t('ckdForm.notPresent')}</button>
+                                    <button type="button" className={`gemini-toggle ${formData.pcc === 'present' ? 'active' : ''}`} onClick={() => setFormData(p => ({ ...p, pcc: 'present' }))}>{t('ckdForm.present')}</button>
                                 </div>
                             </div>
                             <div className="gemini-input-group">
-                                <label>Bacteria</label>
+                                <label>{t('ckdForm.bacteria')}</label>
                                 <div className="gemini-toggle-group">
-                                    <button type="button" className={`gemini-toggle ${formData.ba === 'notpresent' ? 'active' : ''}`} onClick={() => setFormData(p => ({ ...p, ba: 'notpresent' }))}>Not Present</button>
-                                    <button type="button" className={`gemini-toggle ${formData.ba === 'present' ? 'active' : ''}`} onClick={() => setFormData(p => ({ ...p, ba: 'present' }))}>Present</button>
+                                    <button type="button" className={`gemini-toggle ${formData.ba === 'notpresent' ? 'active' : ''}`} onClick={() => setFormData(p => ({ ...p, ba: 'notpresent' }))}>{t('ckdForm.notPresent')}</button>
+                                    <button type="button" className={`gemini-toggle ${formData.ba === 'present' ? 'active' : ''}`} onClick={() => setFormData(p => ({ ...p, ba: 'present' }))}>{t('ckdForm.present')}</button>
                                 </div>
                             </div>
                         </div>
@@ -305,47 +308,47 @@ const CKDTestForm = () => {
                     <div className="gemini-step-content">
                         <div className="gemini-input-row">
                             <div className="gemini-input-group">
-                                <label>Blood Glucose (mg/dL)</label>
+                                <label>{t('ckdForm.bloodGlucose')}</label>
                                 <input type="number" name="bgr" value={formData.bgr} onChange={handleInputChange} placeholder="e.g., 120" className="gemini-input" />
-                                <span className="input-hint">Normal: 70-140</span>
+                                <span className="input-hint">{t('ckdForm.normalRange')}: 70-140</span>
                             </div>
                             <div className="gemini-input-group">
-                                <label>Blood Urea (mg/dL)</label>
+                                <label>{t('ckdForm.bloodUrea')}</label>
                                 <input type="number" name="bu" value={formData.bu} onChange={handleInputChange} placeholder="e.g., 40" className="gemini-input" />
-                                <span className="input-hint">Normal: 7-20</span>
+                                <span className="input-hint">{t('ckdForm.normalRange')}: 7-20</span>
                             </div>
                             <div className="gemini-input-group">
-                                <label>Serum Creatinine (mg/dL)</label>
+                                <label>{t('ckdForm.serumCreatinine')}</label>
                                 <input type="number" name="sc" value={formData.sc} onChange={handleInputChange} placeholder="e.g., 1.2" step="0.1" className="gemini-input" />
-                                <span className="input-hint">⚠️ Key CKD indicator. Normal: 0.7-1.3</span>
+                                <span className="input-hint">⚠️ {t('ckdForm.keyCKDIndicator')}. {t('ckdForm.normalRange')}: 0.7-1.3</span>
                             </div>
                         </div>
                         <div className="gemini-input-row">
                             <div className="gemini-input-group">
-                                <label>Sodium (mEq/L)</label>
+                                <label>{t('ckdForm.sodium')}</label>
                                 <input type="number" name="sod" value={formData.sod} onChange={handleInputChange} placeholder="e.g., 140" className="gemini-input" />
                             </div>
                             <div className="gemini-input-group">
-                                <label>Potassium (mEq/L)</label>
+                                <label>{t('ckdForm.potassium')}</label>
                                 <input type="number" name="pot" value={formData.pot} onChange={handleInputChange} placeholder="e.g., 4.5" step="0.1" className="gemini-input" />
                             </div>
                             <div className="gemini-input-group">
-                                <label>Hemoglobin (g/dL)</label>
+                                <label>{t('ckdForm.hemoglobin')}</label>
                                 <input type="number" name="hemo" value={formData.hemo} onChange={handleInputChange} placeholder="e.g., 14.0" step="0.1" className="gemini-input" />
-                                <span className="input-hint">Normal: 12-17</span>
+                                <span className="input-hint">{t('ckdForm.normalRange')}: 12-17</span>
                             </div>
                         </div>
                         <div className="gemini-input-row">
                             <div className="gemini-input-group">
-                                <label>Packed Cell Volume (%)</label>
+                                <label>{t('ckdForm.packedCellVolume')}</label>
                                 <input type="number" name="pcv" value={formData.pcv} onChange={handleInputChange} placeholder="e.g., 44" className="gemini-input" />
                             </div>
                             <div className="gemini-input-group">
-                                <label>WBC Count</label>
+                                <label>{t('ckdForm.wbcCount')}</label>
                                 <input type="number" name="wc" value={formData.wc} onChange={handleInputChange} placeholder="e.g., 8000" className="gemini-input" />
                             </div>
                             <div className="gemini-input-group">
-                                <label>RBC Count (millions/cmm)</label>
+                                <label>{t('ckdForm.rbcCount')}</label>
                                 <input type="number" name="rc" value={formData.rc} onChange={handleInputChange} placeholder="e.g., 5.0" step="0.1" className="gemini-input" />
                             </div>
                         </div>
@@ -357,27 +360,27 @@ const CKDTestForm = () => {
                     <div className="gemini-step-content">
                         <div className="gemini-condition-grid">
                             {[
-                                { key: 'htn', label: 'Hypertension', icon: '💓' },
-                                { key: 'dm', label: 'Diabetes Mellitus', icon: '🩸' },
-                                { key: 'cad', label: 'Coronary Artery Disease', icon: '❤️' },
-                                { key: 'pe', label: 'Pedal Edema', icon: '🦶' },
-                                { key: 'ane', label: 'Anemia', icon: '🔴' }
+                                { key: 'htn', label: t('ckdForm.hypertension'), icon: '💓' },
+                                { key: 'dm', label: t('ckdForm.diabetesMellitus'), icon: '🩸' },
+                                { key: 'cad', label: t('ckdForm.coronaryArteryDisease'), icon: '❤️' },
+                                { key: 'pe', label: t('ckdForm.pedalEdema'), icon: '🦶' },
+                                { key: 'ane', label: t('ckdForm.anemia'), icon: '🔴' }
                             ].map(item => (
                                 <div key={item.key} className="gemini-condition-card">
                                     <span className="condition-icon">{item.icon}</span>
                                     <span className="condition-label">{item.label}</span>
                                     <div className="gemini-toggle-group compact">
-                                        <button type="button" className={`gemini-toggle ${formData[item.key] === 'no' ? 'active green' : ''}`} onClick={() => setFormData(p => ({ ...p, [item.key]: 'no' }))}>No</button>
-                                        <button type="button" className={`gemini-toggle ${formData[item.key] === 'yes' ? 'active red' : ''}`} onClick={() => setFormData(p => ({ ...p, [item.key]: 'yes' }))}>Yes</button>
+                                        <button type="button" className={`gemini-toggle ${formData[item.key] === 'no' ? 'active green' : ''}`} onClick={() => setFormData(p => ({ ...p, [item.key]: 'no' }))}>{t('ckdForm.no')}</button>
+                                        <button type="button" className={`gemini-toggle ${formData[item.key] === 'yes' ? 'active red' : ''}`} onClick={() => setFormData(p => ({ ...p, [item.key]: 'yes' }))}>{t('ckdForm.yes')}</button>
                                     </div>
                                 </div>
                             ))}
                             <div className="gemini-condition-card">
                                 <span className="condition-icon">🍽️</span>
-                                <span className="condition-label">Appetite</span>
+                                <span className="condition-label">{t('ckdForm.appetite')}</span>
                                 <div className="gemini-toggle-group compact">
-                                    <button type="button" className={`gemini-toggle ${formData.appet === 'good' ? 'active green' : ''}`} onClick={() => setFormData(p => ({ ...p, appet: 'good' }))}>Good</button>
-                                    <button type="button" className={`gemini-toggle ${formData.appet === 'poor' ? 'active red' : ''}`} onClick={() => setFormData(p => ({ ...p, appet: 'poor' }))}>Poor</button>
+                                    <button type="button" className={`gemini-toggle ${formData.appet === 'good' ? 'active green' : ''}`} onClick={() => setFormData(p => ({ ...p, appet: 'good' }))}>{t('ckdForm.good')}</button>
+                                    <button type="button" className={`gemini-toggle ${formData.appet === 'poor' ? 'active red' : ''}`} onClick={() => setFormData(p => ({ ...p, appet: 'poor' }))}>{t('ckdForm.poor')}</button>
                                 </div>
                             </div>
                         </div>
@@ -394,7 +397,7 @@ const CKDTestForm = () => {
                                     <div className="loader-ring"></div>
                                     <div className="loader-ring"></div>
                                 </div>
-                                <h3>Hybrid AI Analyzing...</h3>
+                                <h3>{t('ckdForm.hybridAIAnalyzing')}</h3>
                                 <p>Decision Tree + Random Forest + Logistic Regression</p>
                             </div>
                         ) : prediction ? (
@@ -408,19 +411,19 @@ const CKDTestForm = () => {
                                             <FaCheckCircle className="result-icon success" />
                                         )}
                                         <div>
-                                            <h2>{prediction.result === 'ckd' ? 'CKD Indicators Detected' : 'No CKD Indicators'}</h2>
-                                            <p className="result-subtitle">Hybrid Ensemble AI Analysis</p>
+                                            <h2>{prediction.result === 'ckd' ? t('ckdForm.ckdIndicatorsDetected') : t('ckdForm.noCKDIndicators')}</h2>
+                                            <p className="result-subtitle">{t('ckdForm.hybridEnsembleAI')}</p>
                                         </div>
                                     </div>
 
                                     <div className="result-metrics">
                                         <div className="metric">
                                             <span className="metric-value">{prediction.confidence?.toFixed(1)}%</span>
-                                            <span className="metric-label">Confidence</span>
+                                            <span className="metric-label">{t('ckdTest.confidence')}</span>
                                         </div>
                                         <div className="metric">
-                                            <span className={`metric-value risk-${prediction.risk_level?.toLowerCase()}`}>{prediction.risk_level}</span>
-                                            <span className="metric-label">Risk Level</span>
+                                            <span className={`metric-value risk-${prediction.risk_level?.toLowerCase()}`}><DynamicText text={prediction.risk_level} /></span>
+                                            <span className="metric-label">{t('ckdTest.riskLevel')}</span>
                                         </div>
                                     </div>
 
@@ -431,13 +434,13 @@ const CKDTestForm = () => {
                                             onClick={handleDownloadPdf}
                                             disabled={downloadingPdf}
                                         >
-                                            <FaDownload /> {downloadingPdf ? 'Generating...' : 'Download PDF Report'}
+                                            <FaDownload /> {downloadingPdf ? t('ckdForm.generating') : t('ckdForm.downloadPDFReport')}
                                         </button>
                                     </div>
 
                                     <div className="result-disclaimer">
                                         <FaInfoCircle />
-                                        <span>This is a screening tool. Please consult a nephrologist for proper diagnosis.</span>
+                                        <span>{t('ckdForm.screeningToolDisclaimer')}</span>
                                     </div>
                                 </div>
 
@@ -446,7 +449,7 @@ const CKDTestForm = () => {
                                     <div className="gemini-model-card">
                                         <div className="model-header">
                                             <FaBalanceScale />
-                                            <h3>Hybrid Model Analysis</h3>
+                                            <h3>{t('ckdForm.hybridModelAnalysis')}</h3>
                                         </div>
                                         <div className="model-grid">
                                             {Object.entries(modelDetails).map(([model, details]) => (
@@ -468,13 +471,13 @@ const CKDTestForm = () => {
                                     <div className="gemini-xai-card">
                                         <div className="xai-header">
                                             <FaBrain />
-                                            <h3>Explainable AI (SHAP)</h3>
+                                            <h3>{t('ckdForm.explainableAI')}</h3>
                                         </div>
-                                        <p className="xai-description">{explanation.text_explanation}</p>
+                                        <p className="xai-description"><DynamicText text={explanation.text_explanation} /></p>
 
                                         {explanation.feature_importance && (
                                             <div className="xai-features">
-                                                <h4>Contributing Factors</h4>
+                                                <h4>{t('ckdForm.contributingFactors')}</h4>
                                                 {explanation.feature_importance.slice(0, 6).map((feat, idx) => (
                                                     <div key={idx} className="xai-feature-item">
                                                         <div className="feature-info">
@@ -492,11 +495,11 @@ const CKDTestForm = () => {
                                         {/* Clinical Insights */}
                                         {explanation.clinical_insights && explanation.clinical_insights.length > 0 && (
                                             <div className="xai-insights">
-                                                <h4>Clinical Insights</h4>
+                                                <h4>{t('ckdForm.clinicalInsights')}</h4>
                                                 {explanation.clinical_insights.map((insight, idx) => (
                                                     <div key={idx} className={`insight-item ${insight.severity}`}>
                                                         <span className="insight-feature">{insight.feature?.toUpperCase()}</span>
-                                                        <span className="insight-text">{insight.insight}</span>
+                                                        <span className="insight-text"><DynamicText text={insight.insight} /></span>
                                                     </div>
                                                 ))}
                                             </div>
@@ -509,27 +512,27 @@ const CKDTestForm = () => {
                                     <div className="gemini-recommendations-card">
                                         <div className="rec-header">
                                             <FaAppleAlt />
-                                            <h3>Personalized Recommendations</h3>
+                                            <h3>{t('ckdForm.personalizedRecommendations')}</h3>
                                         </div>
 
                                         <div className="rec-tabs">
                                             <div className="rec-tab-content">
                                                 <div className="rec-section">
-                                                    <h4>🥗 Diet Guidelines</h4>
+                                                    <h4>🥗 {t('ckdForm.dietGuidelines')}</h4>
                                                     <div className="rec-columns">
                                                         <div className="rec-column good">
-                                                            <h5>✅ Recommended</h5>
+                                                            <h5>✅ {t('ckdForm.recommended')}</h5>
                                                             <ul>
                                                                 {recommendations.diet?.foods_to_eat?.slice(0, 4).map((food, idx) => (
-                                                                    <li key={idx}>{food}</li>
+                                                                    <li key={idx}><DynamicText text={food} /></li>
                                                                 ))}
                                                             </ul>
                                                         </div>
                                                         <div className="rec-column avoid">
-                                                            <h5>⚠️ Limit</h5>
+                                                            <h5>⚠️ {t('ckdForm.limit')}</h5>
                                                             <ul>
                                                                 {recommendations.diet?.foods_to_limit?.slice(0, 4).map((food, idx) => (
-                                                                    <li key={idx}>{food}</li>
+                                                                    <li key={idx}><DynamicText text={food} /></li>
                                                                 ))}
                                                             </ul>
                                                         </div>
@@ -537,10 +540,10 @@ const CKDTestForm = () => {
                                                 </div>
 
                                                 <div className="rec-section">
-                                                    <h4>💪 Lifestyle Changes</h4>
+                                                    <h4>💪 {t('ckdForm.lifestyleChanges')}</h4>
                                                     <div className="lifestyle-chips">
                                                         {recommendations.lifestyle?.slice(0, 6).map((item, idx) => (
-                                                            <span key={idx} className="lifestyle-chip">{item}</span>
+                                                            <span key={idx} className="lifestyle-chip"><DynamicText text={item} /></span>
                                                         ))}
                                                     </div>
                                                 </div>
@@ -552,7 +555,7 @@ const CKDTestForm = () => {
                                 {/* Quick Actions */}
                                 <div className="quick-actions">
                                     <button className="gemini-btn secondary" onClick={resetForm}>
-                                        Start New Assessment
+                                        {t('ckdForm.startNewAssessment')}
                                     </button>
                                 </div>
                             </div>
@@ -571,8 +574,8 @@ const CKDTestForm = () => {
                 <div className="gemini-title">
                     <FaFlask className="title-icon" />
                     <div>
-                        <h1>CKD Risk Assessment</h1>
-                        <p>Hybrid AI with Explainable Results (DT + RF + LR)</p>
+                        <h1>{t('ckdTest.title')}</h1>
+                        <p>{t('ckdForm.hybridAI')} (DT + RF + LR)</p>
                     </div>
                 </div>
             </div>
@@ -611,16 +614,16 @@ const CKDTestForm = () => {
                         onClick={prevStep}
                         disabled={currentStep === 0}
                     >
-                        <FaChevronLeft /> Previous
+                        <FaChevronLeft /> {t('ckdForm.previous')}
                     </button>
 
                     {currentStep < 3 ? (
                         <button className="gemini-btn primary" onClick={nextStep}>
-                            Next <FaChevronRight />
+                            {t('ckdForm.next')} <FaChevronRight />
                         </button>
                     ) : (
                         <button className="gemini-btn primary analyze" onClick={handleAnalyze}>
-                            <FaBrain /> Analyze with Hybrid AI
+                            <FaBrain /> {t('ckdForm.analyzeWithHybridAI')}
                         </button>
                     )}
                 </div>

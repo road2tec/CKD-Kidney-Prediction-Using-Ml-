@@ -709,19 +709,313 @@
     color: #374151;
 }
 
-/* Responsive */
+/* ==========================================
+   CKD TEST FORM RESPONSIVE STYLES
+   ========================================== */
+
+/* Tablets */
+@media (max-width: 1024px) {
+    .gemini-container {
+        padding: 1.5rem;
+    }
+
+    .gemini-input-row {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .gemini-condition-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .model-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+/* Mobile devices */
 @media (max-width: 768px) {
+    .gemini-container {
+        padding: 1rem;
+        max-width: 100%;
+    }
+
+    /* Header */
+    .gemini-header {
+        margin-bottom: 1.5rem;
+    }
+
+    .gemini-title {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.75rem;
+    }
+
+    .gemini-title .title-icon {
+        font-size: 2rem;
+        padding: 0.75rem;
+    }
+
+    .gemini-title h1 {
+        font-size: 1.35rem;
+    }
+
+    .gemini-title p {
+        font-size: 0.85rem;
+    }
+
+    /* Progress Steps */
     .gemini-progress {
         flex-direction: column;
         gap: 0.25rem;
+        padding: 1rem;
+        margin-bottom: 1.5rem;
     }
 
+    .gemini-step {
+        padding: 0.75rem;
+    }
+
+    .step-indicator {
+        width: 36px;
+        height: 36px;
+        font-size: 1rem;
+    }
+
+    .step-title {
+        font-size: 0.85rem;
+    }
+
+    .step-desc {
+        font-size: 0.7rem;
+    }
+
+    /* Form Container */
     .gemini-form-container {
+        padding: 1.25rem;
+        border-radius: 16px;
+        min-height: auto;
+    }
+
+    /* Input rows and grids */
+    .gemini-input-row {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+
+    .gemini-condition-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.75rem;
+    }
+
+    .gemini-condition-card {
+        padding: 1rem;
+    }
+
+    .condition-icon {
+        font-size: 1.5rem;
+    }
+
+    .condition-label {
+        font-size: 0.8rem;
+    }
+
+    /* Toggle Groups */
+    .gemini-toggle-group {
+        flex-wrap: wrap;
+    }
+
+    .gemini-toggle {
+        padding: 0.625rem 0.875rem;
+        font-size: 0.875rem;
+    }
+
+    /* Inputs and Selects */
+    .gemini-input,
+    .gemini-select {
+        padding: 0.875rem 1rem;
+        font-size: 16px;
+        /* Prevents zoom on iOS */
+    }
+
+    /* Navigation */
+    .gemini-nav {
+        flex-direction: column-reverse;
+        gap: 0.75rem;
+        padding-top: 1rem;
+    }
+
+    .gemini-btn {
+        width: 100%;
+        justify-content: center;
+        padding: 0.875rem 1rem;
+    }
+
+    /* Results Section */
+    .gemini-result-card {
         padding: 1.5rem;
+        border-radius: 16px;
+    }
+
+    .result-header {
+        flex-direction: column;
+        text-align: center;
+        gap: 0.75rem;
+    }
+
+    .result-icon {
+        font-size: 2rem;
+    }
+
+    .result-header h2 {
+        font-size: 1.25rem;
+    }
+
+    .result-metrics {
+        flex-direction: column;
+        gap: 1rem;
+        padding: 1rem;
+    }
+
+    .metric-value {
+        font-size: 1.75rem;
+    }
+
+    .result-disclaimer {
+        font-size: 0.8rem;
+    }
+
+    /* XAI Card */
+    .gemini-xai-card {
+        padding: 1.5rem;
+        border-radius: 16px;
+    }
+
+    .xai-feature-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.5rem;
+        padding: 0.75rem;
+    }
+
+    /* Recommendations */
+    .gemini-recommendations-card {
+        padding: 1.5rem;
+        border-radius: 16px;
     }
 
     .rec-columns {
         grid-template-columns: 1fr;
+    }
+
+    /* Model Card */
+    .gemini-model-card {
+        padding: 1.5rem;
+    }
+
+    .model-grid {
+        grid-template-columns: 1fr;
+    }
+
+    /* Result Actions */
+    .result-actions {
+        flex-direction: column;
+    }
+
+    .result-actions .gemini-btn {
+        width: 100%;
+    }
+
+    /* Loading */
+    .gemini-loading {
+        padding: 2rem 1rem;
+    }
+
+    .gemini-loader {
+        width: 60px;
+        height: 60px;
+    }
+}
+
+/* Small mobile */
+@media (max-width: 480px) {
+    .gemini-container {
+        padding: 0.75rem;
+    }
+
+    .gemini-title h1 {
+        font-size: 1.25rem;
+    }
+
+    .gemini-form-container {
+        padding: 1rem;
+    }
+
+    .gemini-condition-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .gemini-toggle-group {
+        flex-direction: column;
+    }
+
+    .gemini-toggle {
+        width: 100%;
+        text-align: center;
+    }
+
+    .gemini-step {
+        padding: 0.625rem;
+    }
+
+    .step-info {
+        display: none;
+    }
+
+    .gemini-result-card,
+    .gemini-xai-card,
+    .gemini-recommendations-card,
+    .gemini-model-card {
+        padding: 1rem;
+        border-radius: 12px;
+    }
+
+    .result-header h2 {
+        font-size: 1.1rem;
+    }
+
+    .metric-value {
+        font-size: 1.5rem;
+    }
+
+    .lifestyle-chips {
+        flex-direction: column;
+    }
+
+    .lifestyle-chip {
+        text-align: center;
+    }
+
+    .xai-header h3,
+    .rec-header h3,
+    .model-header h3 {
+        font-size: 1rem;
+    }
+}
+
+/* Extra small devices */
+@media (max-width: 360px) {
+    .gemini-title .title-icon {
+        display: none;
+    }
+
+    .gemini-progress {
+        padding: 0.75rem;
+    }
+
+    .step-indicator {
+        width: 32px;
+        height: 32px;
+        font-size: 0.875rem;
     }
 }
 

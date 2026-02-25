@@ -1,12 +1,15 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { FaHeartbeat, FaEnvelope, FaLock, FaSpinner } from 'react-icons/fa';
 import { toast } from 'react-toastify';
 import axios from 'axios';
 import { useAuth, API_URL } from '../App';
+import LanguageSwitcher from '../components/LanguageSwitcher';
 import './AuthPages.css';
 
 const LoginPage = () => {
+    const { t } = useTranslation();
     const [formData, setFormData] = useState({ email: '', password: '' });
     const [loading, setLoading] = useState(false);
     const navigate = useNavigate();
@@ -19,7 +22,7 @@ const LoginPage = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         if (!formData.email || !formData.password) {
-            toast.error('Please fill in all fields');
+            toast.error(t('auth.allFields'));
             return;
         }
 
@@ -35,7 +38,7 @@ const LoginPage = () => {
                 else if (role === 'admin') navigate('/admin');
             }
         } catch (error) {
-            toast.error(error.response?.data?.message || 'Login failed');
+            toast.error(error.response?.data?.message || t('auth.loginFailed'));
         } finally {
             setLoading(false);
         }
@@ -43,47 +46,48 @@ const LoginPage = () => {
 
     return (
         <div className="auth-page">
+            <LanguageSwitcher />
             <div className="auth-container">
                 <div className="auth-left">
                     <div className="auth-brand">
                         <Link to="/" className="logo">
                             <FaHeartbeat className="logo-icon" />
-                            <span>CKD Predictor</span>
+                            <span>{t('landing.brand')}</span>
                         </Link>
                     </div>
                     <div className="auth-illustration">
                         <div className="floating-card card-1">
                             <FaHeartbeat />
-                            <span>AI Diagnosis</span>
+                            <span>{t('auth.aiDiagnosis')}</span>
                         </div>
                         <div className="floating-card card-2">
                             <span>🩺</span>
-                            <span>Expert Doctors</span>
+                            <span>{t('auth.expertDoctors')}</span>
                         </div>
                         <div className="floating-card card-3">
                             <span>📅</span>
-                            <span>Easy Booking</span>
+                            <span>{t('auth.easyBooking')}</span>
                         </div>
                     </div>
-                    <h2>Welcome Back!</h2>
-                    <p>Access your health dashboard and manage appointments</p>
+                    <h2>{t('auth.welcomeBack')}</h2>
+                    <p>{t('auth.accessDashboard')}</p>
                 </div>
 
                 <div className="auth-right">
                     <div className="auth-form-container">
-                        <h1>Sign In</h1>
-                        <p className="auth-subtitle">Enter your credentials to continue</p>
+                        <h1>{t('auth.signIn')}</h1>
+                        <p className="auth-subtitle">{t('auth.enterCredentials')}</p>
 
                         <form onSubmit={handleSubmit} className="auth-form">
                             <div className="form-group">
-                                <label className="form-label">Email Address</label>
+                                <label className="form-label">{t('auth.email')}</label>
                                 <div className="input-with-icon">
                                     <FaEnvelope className="input-icon" />
                                     <input
                                         type="email"
                                         name="email"
                                         className="form-input"
-                                        placeholder="Enter your email"
+                                        placeholder={t('auth.enterEmail')}
                                         value={formData.email}
                                         onChange={handleChange}
                                     />
@@ -91,14 +95,14 @@ const LoginPage = () => {
                             </div>
 
                             <div className="form-group">
-                                <label className="form-label">Password</label>
+                                <label className="form-label">{t('auth.password')}</label>
                                 <div className="input-with-icon">
                                     <FaLock className="input-icon" />
                                     <input
                                         type="password"
                                         name="password"
                                         className="form-input"
-                                        placeholder="Enter your password"
+                                        placeholder={t('auth.enterPassword')}
                                         value={formData.password}
                                         onChange={handleChange}
                                     />
@@ -106,18 +110,13 @@ const LoginPage = () => {
                             </div>
 
                             <button type="submit" className="btn btn-primary btn-lg w-full" disabled={loading}>
-                                {loading ? <><FaSpinner className="spin" /> Signing in...</> : 'Sign In'}
+                                {loading ? <><FaSpinner className="spin" /> {t('auth.signingIn')}</> : t('auth.signIn')}
                             </button>
                         </form>
 
                         <div className="auth-footer">
-                            <p>Don't have an account? <Link to="/register">Create Account</Link></p>
+                            <p>{t('auth.noAccount')} <Link to="/register">{t('auth.createAccount')}</Link></p>
                         </div>
-
-                        {/* <div className="demo-credentials">
-                            <p className="text-sm text-gray-500">Demo Credentials:</p>
-                            <p className="text-sm"><strong>Admin:</strong> admin@healthcare.com / admin123</p>
-                        </div> */}
                     </div>
                 </div>
             </div>

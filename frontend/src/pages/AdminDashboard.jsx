@@ -1,13 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { Routes, Route, Link, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { FaHeartbeat, FaUsers, FaUserMd, FaCalendarAlt, FaChartBar, FaSignOutAlt, FaUserShield, FaPlus, FaTrash, FaSpinner, FaPills } from 'react-icons/fa';
 import { toast } from 'react-toastify';
 import axios from 'axios';
 import { useAuth, API_URL } from '../App';
 import './Dashboard.css';
+import LanguageSwitcher from '../components/LanguageSwitcher';
 
 // Stats Overview
 const AdminOverview = () => {
+    const { t } = useTranslation();
     const [stats, setStats] = useState(null);
     const { getToken } = useAuth();
 
@@ -28,44 +31,44 @@ const AdminOverview = () => {
     return (
         <div className="page-content animate-fadeIn">
             <div className="page-header">
-                <h1><FaChartBar /> Admin Dashboard</h1>
-                <p>System overview and management</p>
+                <h1><FaChartBar /> {t('admin.dashboard')}</h1>
+                <p>{t('admin.systemOverview')}</p>
             </div>
 
             <div className="stats-grid">
                 <div className="card stat-card">
                     <div className="stat-icon blue"><FaUsers /></div>
-                    <div className="stat-info"><h3>{stats.patients}</h3><p>Patients</p></div>
+                    <div className="stat-info"><h3>{stats.patients}</h3><p>{t('admin.patients')}</p></div>
                 </div>
                 <div className="card stat-card">
                     <div className="stat-icon green"><FaUserMd /></div>
-                    <div className="stat-info"><h3>{stats.doctors}</h3><p>Doctors</p></div>
+                    <div className="stat-info"><h3>{stats.doctors}</h3><p>{t('admin.doctors')}</p></div>
                 </div>
                 <div className="card stat-card">
                     <div className="stat-icon orange"><FaCalendarAlt /></div>
-                    <div className="stat-info"><h3>{stats.appointments}</h3><p>Appointments</p></div>
+                    <div className="stat-info"><h3>{stats.appointments}</h3><p>{t('admin.appointments')}</p></div>
                 </div>
                 <div className="card stat-card">
                     <div className="stat-icon purple"><FaChartBar /></div>
-                    <div className="stat-info"><h3>{stats.predictions}</h3><p>AI Predictions</p></div>
+                    <div className="stat-info"><h3>{stats.predictions}</h3><p>{t('admin.aiPredictions')}</p></div>
                 </div>
             </div>
 
             <div className="grid grid-cols-2 mt-6">
                 <div className="card">
-                    <h3>Quick Actions</h3>
+                    <h3>{t('doctor.quickActions')}</h3>
                     <div className="flex flex-col gap-3 mt-4">
-                        <Link to="/admin/doctors" className="btn btn-primary">Manage Doctors</Link>
-                        <Link to="/admin/users" className="btn btn-secondary">View All Users</Link>
-                        <Link to="/admin/appointments" className="btn btn-secondary">View Appointments</Link>
+                        <Link to="/admin/doctors" className="btn btn-primary">{t('admin.manageDoctors')}</Link>
+                        <Link to="/admin/users" className="btn btn-secondary">{t('admin.viewAllUsers')}</Link>
+                        <Link to="/admin/appointments" className="btn btn-secondary">{t('admin.viewAppointments')}</Link>
                     </div>
                 </div>
                 <div className="card">
-                    <h3>System Info</h3>
+                    <h3>{t('admin.systemInfo')}</h3>
                     <div className="mt-4">
-                        <p><strong>Database:</strong> MongoDB (missing_person)</p>
-                        <p><strong>ML Model:</strong> Multinomial Naive Bayes</p>
-                        <p><strong>Status:</strong> <span className="badge badge-success">Active</span></p>
+                        <p><strong>{t('admin.database')}:</strong> MongoDB (missing_person)</p>
+                        <p><strong>{t('admin.mlModel')}:</strong> Multinomial Naive Bayes</p>
+                        <p><strong>{t('admin.status')}:</strong> <span className="badge badge-success">{t('admin.active')}</span></p>
                     </div>
                 </div>
             </div>
@@ -75,6 +78,7 @@ const AdminOverview = () => {
 
 // Users Management
 const UsersManagement = () => {
+    const { t } = useTranslation();
     const [users, setUsers] = useState([]);
     const [loading, setLoading] = useState(true);
     const [filter, setFilter] = useState('all');
@@ -109,8 +113,8 @@ const UsersManagement = () => {
     return (
         <div className="page-content animate-fadeIn">
             <div className="page-header">
-                <h1><FaUsers /> Users Management</h1>
-                <p>View and manage all users</p>
+                <h1><FaUsers /> {t('admin.usersManagement')}</h1>
+                <p>{t('admin.viewManageUsers')}</p>
             </div>
 
             <div className="filter-tabs mb-4">
@@ -124,7 +128,7 @@ const UsersManagement = () => {
             <div className="table-container card">
                 <table className="data-table">
                     <thead>
-                        <tr><th>Name</th><th>Email</th><th>Role</th><th>Status</th><th>Actions</th></tr>
+                        <tr><th>{t('admin.name')}</th><th>{t('admin.email')}</th><th>{t('admin.role')}</th><th>{t('admin.status')}</th><th>{t('admin.actions')}</th></tr>
                     </thead>
                     <tbody>
                         {users.map(user => (
@@ -132,7 +136,7 @@ const UsersManagement = () => {
                                 <td><strong>{user.name}</strong></td>
                                 <td>{user.email}</td>
                                 <td><span className={`badge badge-${user.role === 'admin' ? 'error' : user.role === 'doctor' ? 'success' : 'primary'}`}>{user.role}</span></td>
-                                <td><span className={`badge ${user.is_active !== false ? 'badge-success' : 'badge-error'}`}>{user.is_active !== false ? 'Active' : 'Inactive'}</span></td>
+                                <td><span className={`badge ${user.is_active !== false ? 'badge-success' : 'badge-error'}`}>{user.is_active !== false ? t('admin.active') : t('admin.inactive')}</span></td>
                                 <td>
                                     {user.role !== 'admin' && (
                                         <button className="btn btn-sm btn-danger" onClick={() => deleteUser(user._id)}><FaTrash /></button>
@@ -149,6 +153,7 @@ const UsersManagement = () => {
 
 // Doctor Management
 const DoctorManagement = () => {
+    const { t } = useTranslation();
     const [doctors, setDoctors] = useState([]);
     const [showForm, setShowForm] = useState(false);
     const [loading, setLoading] = useState(true);
@@ -190,46 +195,46 @@ const DoctorManagement = () => {
     return (
         <div className="page-content animate-fadeIn">
             <div className="page-header flex justify-between items-center">
-                <div><h1><FaUserMd /> Doctor Management</h1><p>Add and manage doctors</p></div>
-                <button className="btn btn-primary" onClick={() => setShowForm(!showForm)}><FaPlus /> Add Doctor</button>
+                <div><h1><FaUserMd /> {t('admin.doctorManagement')}</h1><p>{t('admin.manageDoctorsDesc')}</p></div>
+                <button className="btn btn-primary" onClick={() => setShowForm(!showForm)}><FaPlus /> {t('admin.addDoctor')}</button>
             </div>
 
             {showForm && (
                 <div className="card mb-6 animate-fadeIn">
-                    <h3 className="mb-4">Add New Doctor</h3>
+                    <h3 className="mb-4">{t('admin.createNewDoctor')}</h3>
                     <form onSubmit={handleSubmit}>
                         <div className="grid grid-cols-2 gap-4">
                             <div className="form-group">
-                                <label className="form-label">Name *</label>
+                                <label className="form-label">{t('admin.name')} *</label>
                                 <input type="text" className="form-input" value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} required />
                             </div>
                             <div className="form-group">
-                                <label className="form-label">Email *</label>
+                                <label className="form-label">{t('admin.email')} *</label>
                                 <input type="email" className="form-input" value={formData.email} onChange={e => setFormData({ ...formData, email: e.target.value })} required />
                             </div>
                             <div className="form-group">
-                                <label className="form-label">Password *</label>
+                                <label className="form-label">{t('admin.password')} *</label>
                                 <input type="password" className="form-input" value={formData.password} onChange={e => setFormData({ ...formData, password: e.target.value })} required />
                             </div>
                             <div className="form-group">
-                                <label className="form-label">Specialization *</label>
+                                <label className="form-label">{t('admin.specialization')} *</label>
                                 <select className="form-select" value={formData.specialization} onChange={e => setFormData({ ...formData, specialization: e.target.value })} required>
-                                    <option value="">Select</option>
+                                    <option value="">{t('admin.select')}</option>
                                     {specializations.map(s => <option key={s} value={s}>{s}</option>)}
                                 </select>
                             </div>
                             <div className="form-group">
-                                <label className="form-label">Phone</label>
+                                <label className="form-label">{t('admin.phone')}</label>
                                 <input type="tel" className="form-input" value={formData.phone} onChange={e => setFormData({ ...formData, phone: e.target.value })} />
                             </div>
                             <div className="form-group">
-                                <label className="form-label">Experience</label>
+                                <label className="form-label">{t('admin.experience')}</label>
                                 <input type="text" className="form-input" placeholder="e.g., 5 years" value={formData.experience} onChange={e => setFormData({ ...formData, experience: e.target.value })} />
                             </div>
                         </div>
                         <div className="flex gap-3 mt-4">
-                            <button type="submit" className="btn btn-primary">Add Doctor</button>
-                            <button type="button" className="btn btn-secondary" onClick={() => setShowForm(false)}>Cancel</button>
+                            <button type="submit" className="btn btn-primary">{t('admin.addDoctor')}</button>
+                            <button type="button" className="btn btn-secondary" onClick={() => setShowForm(false)}>{t('admin.cancel')}</button>
                         </div>
                     </form>
                 </div>
@@ -244,12 +249,12 @@ const DoctorManagement = () => {
                                 <h4>Dr. {doc.name}</h4>
                                 <p className="text-primary">{doc.specialization}</p>
                             </div>
-                            <span className={`badge ${doc.is_active !== false ? 'badge-success' : 'badge-error'}`}>{doc.is_active !== false ? 'Active' : 'Inactive'}</span>
+                            <span className={`badge ${doc.is_active !== false ? 'badge-success' : 'badge-error'}`}>{doc.is_active !== false ? t('admin.active') : t('admin.inactive')}</span>
                         </div>
                         <div className="doc-details">
-                            <p><strong>Email:</strong> {doc.email}</p>
-                            <p><strong>Phone:</strong> {doc.phone || 'N/A'}</p>
-                            <p><strong>Experience:</strong> {doc.experience || 'N/A'}</p>
+                            <p><strong>{t('admin.email')}:</strong> {doc.email}</p>
+                            <p><strong>{t('admin.phone')}:</strong> {doc.phone || 'N/A'}</p>
+                            <p><strong>{t('admin.experience')}:</strong> {doc.experience || 'N/A'}</p>
                         </div>
                     </div>
                 ))}
@@ -260,6 +265,7 @@ const DoctorManagement = () => {
 
 // Appointments Overview
 const AppointmentsOverview = () => {
+    const { t } = useTranslation();
     const [appointments, setAppointments] = useState([]);
     const [loading, setLoading] = useState(true);
     const { getToken } = useAuth();
@@ -288,13 +294,13 @@ const AppointmentsOverview = () => {
     return (
         <div className="page-content animate-fadeIn">
             <div className="page-header">
-                <h1><FaCalendarAlt /> All Appointments</h1>
-                <p>System-wide appointment records</p>
+                <h1><FaCalendarAlt /> {t('admin.allAppointments')}</h1>
+                <p>{t('admin.systemRecords')}</p>
             </div>
 
             <div className="table-container card">
                 <table className="data-table">
-                    <thead><tr><th>Date</th><th>Time</th><th>Predicted Disease</th><th>Status</th></tr></thead>
+                    <thead><tr><th>{t('admin.date')}</th><th>{t('admin.time')}</th><th>{t('admin.predictedDisease')}</th><th>{t('admin.status')}</th></tr></thead>
                     <tbody>
                         {appointments.map(apt => (
                             <tr key={apt._id}>
@@ -313,6 +319,7 @@ const AppointmentsOverview = () => {
 
 // Medical Management - Unified Pharmacy with Medicine List
 const MedicalManagement = () => {
+    const { t } = useTranslation();
     const [medicals, setMedicals] = useState([]);
     const [loading, setLoading] = useState(true);
     const [showForm, setShowForm] = useState(false);
@@ -415,60 +422,60 @@ const MedicalManagement = () => {
         <div className="page-content animate-fadeIn">
             <div className="page-header flex justify-between items-center">
                 <div>
-                    <h1><FaPills /> Medical Stores</h1>
-                    <p>Manage medical stores with CKD medicines</p>
+                    <h1><FaPills /> {t('admin.medicalStores')}</h1>
+                    <p>{t('admin.manageMedicalStores')}</p>
                 </div>
                 <button className="btn btn-primary" onClick={() => setShowForm(!showForm)}>
-                    <FaPlus /> Add Medical Store
+                    <FaPlus /> {t('admin.addMedicalStore')}
                 </button>
             </div>
 
             {showForm && (
                 <div className="card mb-6 animate-fadeIn">
-                    <h3 className="mb-4">Add New Medical Store</h3>
+                    <h3 className="mb-4">{t('admin.addMedicalStore')}</h3>
                     <form onSubmit={handleAddMedical}>
                         <div className="grid grid-cols-2 gap-4">
                             <div className="form-group">
-                                <label className="form-label">Store Name *</label>
+                                <label className="form-label">{t('admin.storeName')} *</label>
                                 <input type="text" className="form-input" value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} required />
                             </div>
                             <div className="form-group">
-                                <label className="form-label">Type *</label>
+                                <label className="form-label">{t('admin.type')} *</label>
                                 <select className="form-select" value={formData.type} onChange={e => setFormData({ ...formData, type: e.target.value })}>
                                     {medicalTypes.map(t => <option key={t} value={t}>{t}</option>)}
                                 </select>
                             </div>
                             <div className="form-group">
-                                <label className="form-label">Address *</label>
+                                <label className="form-label">{t('admin.address')} *</label>
                                 <input type="text" className="form-input" value={formData.address} onChange={e => setFormData({ ...formData, address: e.target.value })} required />
                             </div>
                             <div className="form-group">
-                                <label className="form-label">City *</label>
+                                <label className="form-label">{t('admin.city')} *</label>
                                 <input type="text" className="form-input" value={formData.city} onChange={e => setFormData({ ...formData, city: e.target.value })} required />
                             </div>
                             <div className="form-group">
-                                <label className="form-label">State</label>
+                                <label className="form-label">{t('admin.state')}</label>
                                 <input type="text" className="form-input" value={formData.state} onChange={e => setFormData({ ...formData, state: e.target.value })} />
                             </div>
                             <div className="form-group">
-                                <label className="form-label">Pincode</label>
+                                <label className="form-label">{t('admin.pincode')}</label>
                                 <input type="text" className="form-input" value={formData.pincode} onChange={e => setFormData({ ...formData, pincode: e.target.value })} />
                             </div>
                             <div className="form-group">
-                                <label className="form-label">Contact *</label>
+                                <label className="form-label">{t('admin.contact')} *</label>
                                 <input type="text" className="form-input" value={formData.contact} onChange={e => setFormData({ ...formData, contact: e.target.value })} required />
                             </div>
                             <div className="form-group">
-                                <label className="form-label">Hours *</label>
+                                <label className="form-label">{t('admin.hours')} *</label>
                                 <input type="text" className="form-input" placeholder="e.g., 8 AM - 10 PM" value={formData.hours} onChange={e => setFormData({ ...formData, hours: e.target.value })} required />
                             </div>
                         </div>
 
                         <div style={{ marginTop: '1rem', padding: '1rem', background: 'var(--gray-50)', borderRadius: '8px' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
-                                <h4 style={{ margin: 0 }}>💊 Select CKD Medicines ({selectedMedicines.length} selected)</h4>
+                                <h4 style={{ margin: 0 }}>💊 {t('admin.selectCkdMedicines')} ({selectedMedicines.length} selected)</h4>
                                 <button type="button" className="btn btn-sm" onClick={selectAllMedicines} style={{ padding: '0.25rem 0.75rem' }}>
-                                    {selectedMedicines.length === commonMedicines.length ? 'Deselect All' : 'Select All'}
+                                    {selectedMedicines.length === commonMedicines.length ? t('admin.deselectAll') : t('admin.selectAll')}
                                 </button>
                             </div>
                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '0.5rem' }}>
@@ -495,8 +502,8 @@ const MedicalManagement = () => {
                         </div>
 
                         <div className="flex gap-3 mt-4">
-                            <button type="submit" className="btn btn-primary">Add Medical Store</button>
-                            <button type="button" className="btn btn-secondary" onClick={() => setShowForm(false)}>Cancel</button>
+                            <button type="submit" className="btn btn-primary">{t('admin.addMedicalStore')}</button>
+                            <button type="button" className="btn btn-secondary" onClick={() => setShowForm(false)}>{t('admin.cancel')}</button>
                         </div>
                     </form>
                 </div>
@@ -521,13 +528,13 @@ const MedicalManagement = () => {
                         </div>
 
                         <div className="flex gap-2 mt-2">
-                            <span className="badge badge-success">{medical.total_medicines || medical.available_medicines?.length || 12} Medicines</span>
-                            {medical.delivers && <span className="badge badge-warning">Home Delivery</span>}
+                            <span className="badge badge-success">{t('admin.medicinesCount', { count: medical.total_medicines || medical.available_medicines?.length || 12 })}</span>
+                            {medical.delivers && <span className="badge badge-warning">{t('admin.homeDelivery')}</span>}
                         </div>
 
                         {selectedMedical?._id === medical._id && (
                             <div style={{ marginTop: '1rem', padding: '1rem', background: 'var(--gray-50)', borderRadius: '8px' }}>
-                                <h4 style={{ marginBottom: '0.75rem' }}>💊 Available CKD Medicines</h4>
+                                <h4 style={{ marginBottom: '0.75rem' }}>💊 {t('admin.availableMedicines')}</h4>
                                 <div style={{ display: 'grid', gap: '0.5rem' }}>
                                     {(medical.available_medicines?.length > 0 ? medical.available_medicines : commonMedicines).map((med, idx) => (
                                         <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', padding: '0.5rem', background: 'white', borderRadius: '6px', fontSize: '0.85rem' }}>
@@ -545,8 +552,8 @@ const MedicalManagement = () => {
             {medicals.length === 0 && (
                 <div className="card" style={{ textAlign: 'center', padding: '3rem' }}>
                     <FaPills style={{ fontSize: '3rem', color: 'var(--gray-300)', marginBottom: '1rem' }} />
-                    <h3>No Medical Stores Added</h3>
-                    <p style={{ color: 'var(--gray-500)' }}>Add medical stores with CKD medicines for patients</p>
+                    <h3>{t('admin.noMedicalStores')}</h3>
+                    <p style={{ color: 'var(--gray-500)' }}>{t('admin.addStoreDesc')}</p>
                 </div>
             )}
         </div>
@@ -557,6 +564,7 @@ const MedicalManagement = () => {
 
 // Main Admin Dashboard
 const AdminDashboard = () => {
+    const { t } = useTranslation();
     const { user, logout } = useAuth();
     const navigate = useNavigate();
 
@@ -567,16 +575,19 @@ const AdminDashboard = () => {
             <aside className="sidebar admin-sidebar">
                 <div className="sidebar-header">
                     <FaHeartbeat className="sidebar-logo" />
-                    <span>CKD Predictor</span>
+                    <span>{t('landing.brand')}</span>
                 </div>
                 <nav className="sidebar-nav">
-                    <Link to="/admin" className="nav-item"><FaChartBar /> Dashboard</Link>
-                    <Link to="/admin/users" className="nav-item"><FaUsers /> Users</Link>
-                    <Link to="/admin/doctors" className="nav-item"><FaUserMd /> Doctors</Link>
-                    <Link to="/admin/pharmacy" className="nav-item"><FaPills /> Medical</Link>
-                    <Link to="/admin/appointments" className="nav-item"><FaCalendarAlt /> Appointments</Link>
+                    <Link to="/admin" className="nav-item"><FaChartBar /> {t('admin.dashboard')}</Link>
+                    <Link to="/admin/users" className="nav-item"><FaUsers /> {t('admin.users')}</Link>
+                    <Link to="/admin/doctors" className="nav-item"><FaUserMd /> {t('admin.doctors')}</Link>
+                    <Link to="/admin/pharmacy" className="nav-item"><FaPills /> {t('patient.pharmacy')}</Link>
+                    <Link to="/admin/appointments" className="nav-item"><FaCalendarAlt /> {t('admin.appointments')}</Link>
                 </nav>
                 <div className="sidebar-footer">
+                    <div className="sidebar-language">
+                        <LanguageSwitcher />
+                    </div>
                     <div className="user-info">
                         <FaUserShield className="user-avatar" />
                         <div>
@@ -584,7 +595,7 @@ const AdminDashboard = () => {
                             <span className="user-role">Admin</span>
                         </div>
                     </div>
-                    <button onClick={handleLogout} className="logout-btn"><FaSignOutAlt /> Logout</button>
+                    <button onClick={handleLogout} className="logout-btn"><FaSignOutAlt /> {t('common.logout')}</button>
                 </div>
             </aside>
             <main className="main-content">

@@ -17,7 +17,7 @@ try:
     from config import GEMINI_API_KEY, GEMINI_MODEL
 except ImportError:
     GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY', '')
-    GEMINI_MODEL = 'gemini-pro'
+    GEMINI_MODEL = 'gemini-2.5-flash'
 
 def get_current_user():
     """Helper to get current user identity as dict"""
@@ -44,8 +44,8 @@ def call_gemini_api(prompt, max_tokens=2048):
         # Configure the Gemini API
         genai.configure(api_key=GEMINI_API_KEY)
         
-        # Create the model
-        model = genai.GenerativeModel('gemini-pro')
+        # Create the model - use gemini-2.5-flash
+        model = genai.GenerativeModel('gemini-2.5-flash')
         
         # Configure generation settings
         generation_config = {
@@ -73,7 +73,7 @@ def call_gemini_api(prompt, max_tokens=2048):
         return {
             'success': True,
             'text': response.text,
-            'model': 'gemini-pro'
+            'model': 'gemini-2.5-flash'
         }
         
     except ImportError:
@@ -91,7 +91,7 @@ def call_gemini_rest_api(prompt, max_tokens=2048):
     try:
         import requests
         
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key={GEMINI_API_KEY}"
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={GEMINI_API_KEY}"
         
         payload = {
             "contents": [{
@@ -248,19 +248,41 @@ IMPORTANT:
 
 
 def parse_gemini_response(response_text):
-    """Parse and validate the Gemini response"""
+    """Parse and validate the Gemini response - handles markdown code blocks"""
     try:
-        # Try to find JSON in the response
         import re
         
-        # Look for JSON block
+        if not response_text:
+            return None
+        
+        # Strategy 1: Try to parse directly as JSON
+        try:
+            return json.loads(response_text.strip())
+        except json.JSONDecodeError:
+            pass
+        
+        # Strategy 2: Strip markdown code fences (```json ... ``` or ``` ... ```)
+        cleaned = re.sub(r'^```(?:json)?\s*', '', response_text.strip(), flags=re.MULTILINE)
+        cleaned = re.sub(r'```\s*$', '', cleaned.strip(), flags=re.MULTILINE)
+        cleaned = cleaned.strip()
+        try:
+            return json.loads(cleaned)
+        except json.JSONDecodeError:
+            pass
+        
+        # Strategy 3: Find the first { ... } block (greedy)
         json_match = re.search(r'\{[\s\S]*\}', response_text)
         if json_match:
-            json_str = json_match.group()
-            return json.loads(json_str)
-        else:
-            return None
-    except json.JSONDecodeError:
+            try:
+                return json.loads(json_match.group())
+            except json.JSONDecodeError:
+                pass
+        
+        print(f"[Gemini] WARNING: Could not parse JSON from response: {response_text[:500]}")
+        return None
+        
+    except Exception as e:
+        print(f"[Gemini] ERROR parsing response: {e}")
         return None
 
 
@@ -364,21 +386,32 @@ def get_personalized_recommendations():
         # Create the prompt
         prompt = create_ckd_recommendation_prompt(patient_data, prediction_result)
         
+        print(f"[Gemini] Calling API with key: {'SET' if GEMINI_API_KEY else 'MISSING'}")
+        
         # Call Gemini API
         gemini_response = call_gemini_rest_api(prompt)
+        
+        print(f"[Gemini] API response success: {gemini_response.get('success')}")
+        if not gemini_response.get('success'):
+            print(f"[Gemini] API error: {gemini_response.get('error')}")
+        else:
+            print(f"[Gemini] Raw response (first 300 chars): {gemini_response.get('text', '')[:300]}")
         
         if gemini_response['success']:
             # Parse the response
             recommendations = parse_gemini_response(gemini_response['text'])
             
             if recommendations:
+                print(f"[Gemini] JSON parsed successfully, keys: {list(recommendations.keys())}")
                 recommendations['source'] = 'gemini-ai'
                 recommendations['generated_at'] = datetime.utcnow().isoformat()
             else:
+                print("[Gemini] JSON parsing failed, using fallback")
                 # Use fallback if parsing fails
                 recommendations = get_fallback_recommendations(patient_data, prediction_result)
         else:
             # Use fallback recommendations
+            print("[Gemini] API call failed, using fallback")
             recommendations = get_fallback_recommendations(patient_data, prediction_result)
             recommendations['ai_error'] = gemini_response.get('error', 'Unknown error')
         
@@ -405,6 +438,21 @@ def get_personalized_recommendations():
             'success': False,
             'message': str(e)
         }), 500
+
+
+@gemini_bp.route('/test-key', methods=['GET'])
+def test_gemini_key():
+    """Test if Gemini API key is working"""
+    if not GEMINI_API_KEY:
+        return jsonify({'success': False, 'error': 'GEMINI_API_KEY is not set in environment'}), 400
+    
+    test_response = call_gemini_rest_api("Say 'API OK' in 5 words.", max_tokens=50)
+    return jsonify({
+        'key_set': bool(GEMINI_API_KEY),
+        'key_prefix': GEMINI_API_KEY[:8] + '...' if GEMINI_API_KEY else 'NOT SET',
+        'api_test': test_response
+    })
+
 
 
 @gemini_bp.route('/quick-advice', methods=['POST'])
@@ -466,23 +514,29 @@ PATIENT PROFILE:
 - CKD Prediction: {prediction}
 - Risk Level: {risk_level}
 
-ADDITIONAL CONTEXT:
-{json.dumps(context, indent=2) if context else 'No additional context provided'}
+IMPORTANT RESPONSE RULES:
+1. Keep your answer SHORT and CONCISE - maximum 150 words
+2. DO NOT use any markdown formatting - no *, **, #, ###, or bullet points with *
+3. Use plain text only. Use numbered lists (1. 2. 3.) or dashes (-) for lists
+4. Give direct, practical advice
+5. Always mention "consult your doctor" briefly at the end
+6. Use simple language a patient can understand
+7. If medicines are relevant, mention 2-3 key ones briefly{medicine_section}
 
-Please provide a helpful, accurate, and comprehensive response. Important guidelines:
-1. Be informative but always recommend consulting healthcare providers for personalized advice
-2. If the question involves medication or dosages, provide general guidance but emphasize professional consultation
-3. Provide practical, actionable advice where appropriate
-4. Be empathetic and supportive in your response
-5. Consider the patient's age, gender, and risk level in your recommendations{medicine_section}
-
-Provide a well-structured response with clear sections."""
+Answer the question directly and concisely."""
 
         # Call Gemini API
-        gemini_response = call_gemini_rest_api(prompt, max_tokens=2048)
+        gemini_response = call_gemini_rest_api(prompt, max_tokens=600)
         
         if gemini_response['success']:
             advice = gemini_response['text']
+            # Clean any markdown formatting from response
+            import re
+            advice = re.sub(r'\*\*(.+?)\*\*', r'\1', advice)  # Remove **bold**
+            advice = re.sub(r'\*(.+?)\*', r'\1', advice)      # Remove *italic*
+            advice = re.sub(r'^#{1,6}\s*', '', advice, flags=re.MULTILINE)  # Remove ### headers
+            advice = re.sub(r'^\*\s+', '- ', advice, flags=re.MULTILINE)    # Replace * bullets with -
+            advice = advice.strip()
             source = 'gemini-ai'
         else:
             # Fallback with medicine recommendations

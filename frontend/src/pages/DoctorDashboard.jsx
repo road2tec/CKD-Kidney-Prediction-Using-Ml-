@@ -1,14 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { Routes, Route, Link, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { FaHeartbeat, FaCalendarAlt, FaUsers, FaCheck, FaTimes, FaSignOutAlt, FaUser, FaClock, FaChartBar, FaVideo, FaPhoneAlt } from 'react-icons/fa';
 import { toast } from 'react-toastify';
 import axios from 'axios';
 import { useAuth, API_URL } from '../App';
 import './Dashboard.css';
 import VideoCall from '../components/VideoCall';
+import LanguageSwitcher from '../components/LanguageSwitcher';
 
 // Appointments Component
 const DoctorAppointments = () => {
+    const { t } = useTranslation();
     const [appointments, setAppointments] = useState([]);
     const [loading, setLoading] = useState(true);
     const [filter, setFilter] = useState('all');
@@ -53,14 +56,14 @@ const DoctorAppointments = () => {
     return (
         <div className="page-content animate-fadeIn">
             <div className="page-header">
-                <h1><FaCalendarAlt /> Appointments</h1>
-                <p>Manage your patient appointments</p>
+                <h1><FaCalendarAlt /> {t('doctor.appointments')}</h1>
+                <p>{t('doctor.manageAppointments')}</p>
             </div>
 
             <div className="filter-tabs mb-4">
                 {['all', 'pending', 'confirmed', 'completed'].map(f => (
                     <button key={f} className={`filter-tab ${filter === f ? 'active' : ''}`} onClick={() => setFilter(f)}>
-                        {f.charAt(0).toUpperCase() + f.slice(1)}
+                        {t(`doctor.${f}`) || f.charAt(0).toUpperCase() + f.slice(1)}
                     </button>
                 ))}
             </div>
@@ -68,19 +71,19 @@ const DoctorAppointments = () => {
             {appointments.length === 0 ? (
                 <div className="empty-state card">
                     <FaCalendarAlt className="empty-icon" />
-                    <h3>No Appointments</h3>
-                    <p>No {filter !== 'all' ? filter : ''} appointments found</p>
+                    <h3>{t('doctor.noAppointments')}</h3>
+                    <p>{t('doctor.noAppointmentsFound')}</p>
                 </div>
             ) : (
                 <div className="table-container card">
                     <table className="data-table">
                         <thead>
                             <tr>
-                                <th>Patient</th>
-                                <th>Date & Time</th>
-                                <th>Symptoms</th>
-                                <th>Status</th>
-                                <th>Actions</th>
+                                <th>{t('doctor.patient')}</th>
+                                <th>{t('doctor.dateTime')}</th>
+                                <th>{t('doctor.symptoms')}</th>
+                                <th>{t('doctor.status')}</th>
+                                <th>{t('doctor.actions')}</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -104,13 +107,13 @@ const DoctorAppointments = () => {
                                     <td>{getStatusBadge(apt.status)}</td>
                                     <td>
                                         {apt.status === 'pending' && (
-                                            <div className="action-buttons">
-                                                <button className="btn btn-sm btn-success" onClick={() => updateStatus(apt._id, 'confirmed')}><FaCheck /></button>
-                                                <button className="btn btn-sm btn-danger" onClick={() => updateStatus(apt._id, 'cancelled')}><FaTimes /></button>
-                                            </div>
+                                            <>
+                                                <button className="btn btn-sm btn-success mr-2" onClick={() => updateStatus(apt._id, 'confirmed')}>{t('doctor.accept')}</button>
+                                                <button className="btn btn-sm btn-outline-danger" onClick={() => updateStatus(apt._id, 'cancelled')}>{t('doctor.cancel')}</button>
+                                            </>
                                         )}
                                         {apt.status === 'confirmed' && (
-                                            <button className="btn btn-sm btn-success" onClick={() => updateStatus(apt._id, 'completed')}>Complete</button>
+                                            <button className="btn btn-sm btn-success" onClick={() => updateStatus(apt._id, 'completed')}>{t('doctor.complete')}</button>
                                         )}
                                     </td>
                                 </tr>
@@ -125,6 +128,7 @@ const DoctorAppointments = () => {
 
 // Stats Component
 const DoctorStats = () => {
+    const { t } = useTranslation();
     const [stats, setStats] = useState(null);
     const { getToken } = useAuth();
 
@@ -145,8 +149,8 @@ const DoctorStats = () => {
     return (
         <div className="page-content animate-fadeIn">
             <div className="page-header">
-                <h1><FaChartBar /> Dashboard</h1>
-                <p>Overview of your practice</p>
+                <h1><FaChartBar /> {t('doctor.dashboard')}</h1>
+                <p>{t('doctor.overviewTitle')}</p>
             </div>
 
             <div className="stats-grid">
@@ -154,37 +158,37 @@ const DoctorStats = () => {
                     <div className="stat-icon blue"><FaCalendarAlt /></div>
                     <div className="stat-info">
                         <h3>{stats.total}</h3>
-                        <p>Total Appointments</p>
+                        <p>{t('doctor.totalAppointments')}</p>
                     </div>
                 </div>
                 <div className="card stat-card">
                     <div className="stat-icon orange"><FaClock /></div>
                     <div className="stat-info">
                         <h3>{stats.today}</h3>
-                        <p>Today's Appointments</p>
+                        <p>{t('doctor.todaysAppointments')}</p>
                     </div>
                 </div>
                 <div className="card stat-card">
                     <div className="stat-icon purple"><FaUsers /></div>
                     <div className="stat-info">
                         <h3>{stats.pending}</h3>
-                        <p>Pending</p>
+                        <p>{t('doctor.pending')}</p>
                     </div>
                 </div>
                 <div className="card stat-card">
                     <div className="stat-icon green"><FaCheck /></div>
                     <div className="stat-info">
                         <h3>{stats.completed}</h3>
-                        <p>Completed</p>
+                        <p>{t('doctor.completed')}</p>
                     </div>
                 </div>
             </div>
 
             <div className="card mt-6">
-                <h3 className="mb-4">Quick Actions</h3>
+                <h3 className="mb-4">{t('doctor.quickActions')}</h3>
                 <div className="flex gap-4">
-                    <Link to="/doctor/appointments" className="btn btn-primary">View All Appointments</Link>
-                    <Link to="/doctor/appointments?status=pending" className="btn btn-secondary">Pending Approvals</Link>
+                    <Link to="/doctor/appointments" className="btn btn-primary">{t('doctor.viewAllAppointments')}</Link>
+                    <Link to="/doctor/appointments?status=pending" className="btn btn-secondary">{t('doctor.pendingApprovals')}</Link>
                 </div>
             </div>
         </div>
@@ -193,6 +197,7 @@ const DoctorStats = () => {
 
 // Telemedicine Component for Doctors
 const DoctorTelemedicine = () => {
+    const { t } = useTranslation();
     const [sessions, setSessions] = useState([]);
     const [loading, setLoading] = useState(true);
     const [activeCall, setActiveCall] = useState(null);
@@ -261,31 +266,31 @@ const DoctorTelemedicine = () => {
     return (
         <div className="page-content animate-fadeIn">
             <div className="page-header">
-                <h1><FaVideo /> Telemedicine Sessions</h1>
-                <p>Manage video consultations with patients</p>
+                <h1><FaVideo /> {t('doctor.telemedicineSessions')}</h1>
+                <p>{t('doctor.telemedicineDesc')}</p>
             </div>
 
             <div className="card">
-                <h3 style={{ marginBottom: '1rem' }}>Scheduled Consultations</h3>
+                <h3 style={{ marginBottom: '1rem' }}>{t('doctor.scheduledConsultations')}</h3>
                 {sessions.length === 0 ? (
-                    <p style={{ color: 'var(--gray-500)' }}>No telemedicine sessions scheduled.</p>
+                    <p style={{ color: 'var(--gray-500)' }}>{t('doctor.noSessions')}</p>
                 ) : (
                     <div className="table-container">
                         <table className="data-table">
                             <thead>
                                 <tr>
-                                    <th>Patient</th>
-                                    <th>Type</th>
-                                    <th>Scheduled Time</th>
-                                    <th>Status</th>
-                                    <th>Action</th>
+                                    <th>{t('doctor.patient')}</th>
+                                    <th>{t('doctor.type')}</th>
+                                    <th>{t('doctor.scheduledTime')}</th>
+                                    <th>{t('doctor.status')}</th>
+                                    <th>{t('doctor.actions')}</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {sessions.map(session => (
                                     <tr key={session._id}>
                                         <td><strong>{session.patient_name || 'Unknown Patient'}</strong></td>
-                                        <td>{session.session_type === 'video' ? '📹 Video' : '📞 Audio'}</td>
+                                        <td>{session.session_type === 'video' ? `📹 ${t('doctor.video')}` : `📞 ${t('doctor.audio')}`}</td>
                                         <td>{new Date(session.scheduled_time).toLocaleString()}</td>
                                         <td>
                                             <span className={`badge ${session.status === 'scheduled' ? 'badge-primary' :
@@ -302,11 +307,11 @@ const DoctorTelemedicine = () => {
                                                     onClick={() => joinVideoCall(session)}
                                                     style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
                                                 >
-                                                    <FaPhoneAlt /> Join Call
+                                                    <FaPhoneAlt /> {t('doctor.joinCall')}
                                                 </button>
                                             )}
                                             {session.status === 'completed' && (
-                                                <span style={{ color: 'var(--gray-500)', fontSize: '0.875rem' }}>Completed</span>
+                                                <span style={{ color: 'var(--gray-500)', fontSize: '0.875rem' }}>{t('doctor.completed')}</span>
                                             )}
                                         </td>
                                     </tr>
@@ -323,6 +328,7 @@ const DoctorTelemedicine = () => {
 // Main Doctor Dashboard
 
 const DoctorDashboard = () => {
+    const { t } = useTranslation();
     const { user, logout } = useAuth();
     const navigate = useNavigate();
 
@@ -333,22 +339,25 @@ const DoctorDashboard = () => {
             <aside className="sidebar">
                 <div className="sidebar-header">
                     <FaHeartbeat className="sidebar-logo" />
-                    <span>CKD Predictor</span>
+                    <span>{t('landing.brand')}</span>
                 </div>
                 <nav className="sidebar-nav">
-                    <Link to="/doctor" className="nav-item"><FaChartBar /> Dashboard</Link>
-                    <Link to="/doctor/appointments" className="nav-item"><FaCalendarAlt /> Appointments</Link>
-                    <Link to="/doctor/telemedicine" className="nav-item"><FaVideo /> Telemedicine</Link>
+                    <Link to="/doctor" className="nav-item"><FaChartBar /> {t('doctor.dashboard')}</Link>
+                    <Link to="/doctor/appointments" className="nav-item"><FaCalendarAlt /> {t('doctor.appointments')}</Link>
+                    <Link to="/doctor/telemedicine" className="nav-item"><FaVideo /> {t('doctor.telemedicine')}</Link>
                 </nav>
                 <div className="sidebar-footer">
+                    <div className="sidebar-language">
+                        <LanguageSwitcher />
+                    </div>
                     <div className="user-info">
                         <FaUser className="user-avatar" />
                         <div>
-                            <span className="user-name">Dr. {user?.name}</span>
-                            <span className="user-role">Doctor</span>
+                            <span className="user-name">{t('doctor.welcome')} {user?.name}</span>
+                            <span className="user-role">{t('auth.doctor')}</span>
                         </div>
                     </div>
-                    <button onClick={handleLogout} className="logout-btn"><FaSignOutAlt /> Logout</button>
+                    <button onClick={handleLogout} className="logout-btn"><FaSignOutAlt /> {t('common.logout')}</button>
                 </div>
             </aside>
             <main className="main-content">

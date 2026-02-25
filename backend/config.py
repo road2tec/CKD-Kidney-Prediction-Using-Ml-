@@ -49,7 +49,7 @@ LABEL_ENCODER_PATH = os.path.join(os.path.dirname(__file__), 'ml', 'label_encode
 
 # Gemini AI Configuration - from .env
 GEMINI_API_KEY = os.getenv('GEMINI_API_KEY', '')
-GEMINI_MODEL = os.getenv('GEMINI_MODEL', 'gemini-pro')
+GEMINI_MODEL = os.getenv('GEMINI_MODEL', 'gemini-2.5-flash')
 
 # Doctor Specializations mapping to diseases
 DISEASE_TO_SPECIALIZATION = {

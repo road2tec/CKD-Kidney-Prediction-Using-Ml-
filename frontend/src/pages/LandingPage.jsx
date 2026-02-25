@@ -1,9 +1,13 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { FaFlask, FaBrain, FaAppleAlt, FaUsers, FaShieldAlt, FaVideo, FaChartLine, FaMicroscope } from 'react-icons/fa';
+import LanguageSwitcher from '../components/LanguageSwitcher';
 import './LandingPage.css';
 
 const LandingPage = () => {
+    const { t } = useTranslation();
+
     return (
         <div className="landing-page">
             {/* Navigation */}
@@ -12,11 +16,12 @@ const LandingPage = () => {
                     <div className="nav-content">
                         <div className="logo">
                             <FaFlask className="logo-icon" />
-                            <span>CKD Predictor</span>
+                            <span>{t('landing.brand')}</span>
                         </div>
                         <div className="nav-links">
-                            <Link to="/login" className="btn btn-secondary">Login</Link>
-                            <Link to="/register" className="btn btn-primary">Get Started</Link>
+                            <LanguageSwitcher variant="landing" />
+                            <Link to="/login" className="btn btn-secondary">{t('common.login')}</Link>
+                            <Link to="/register" className="btn btn-primary">{t('common.register')}</Link>
                         </div>
                     </div>
                 </div>
@@ -27,34 +32,32 @@ const LandingPage = () => {
                 <div className="container">
                     <div className="hero-content">
                         <div className="hero-badge">
-                            <FaBrain /> Explainable AI-Powered Detection
+                            <FaBrain /> {t('landing.badge')}
                         </div>
-                        <h1>Chronic Kidney Disease Prediction System</h1>
+                        <h1>{t('landing.heroTitle')}</h1>
                         <p className="hero-subtitle">
-                            Advanced AI-powered early detection of Chronic Kidney Disease with transparent
-                            SHAP-based explanations. Get personalized health recommendations, donor matching,
-                            and telemedicine support all in one comprehensive platform.
+                            {t('landing.heroSubtitle')}
                         </p>
                         <div className="hero-buttons">
                             <Link to="/register" className="btn btn-primary btn-lg">
-                                Start CKD Risk Assessment
+                                {t('landing.startAssessment')}
                             </Link>
                             <Link to="/login" className="btn btn-secondary btn-lg">
-                                I have an account
+                                {t('landing.haveAccount')}
                             </Link>
                         </div>
                         <div className="hero-stats">
                             <div className="stat">
                                 <span className="stat-value">96%</span>
-                                <span className="stat-label">CKD Detection Accuracy</span>
+                                <span className="stat-label">{t('landing.stats.accuracy')}</span>
                             </div>
                             <div className="stat">
                                 <span className="stat-value">24</span>
-                                <span className="stat-label">Medical Parameters</span>
+                                <span className="stat-label">{t('landing.stats.parameters')}</span>
                             </div>
                             <div className="stat">
                                 <span className="stat-value">100%</span>
-                                <span className="stat-label">AI Explainability</span>
+                                <span className="stat-label">{t('landing.stats.explainability')}</span>
                             </div>
                         </div>
                     </div>
@@ -71,51 +74,51 @@ const LandingPage = () => {
             <section className="features">
                 <div className="container">
                     <div className="section-header">
-                        <h2>Complete CKD Care Solution</h2>
-                        <p>AI-powered prediction with comprehensive patient support</p>
+                        <h2>{t('landing.features.title')}</h2>
+                        <p>{t('landing.features.subtitle')}</p>
                     </div>
                     <div className="features-grid">
                         <div className="feature-card">
                             <div className="feature-icon">
                                 <FaFlask />
                             </div>
-                            <h3>CKD Prediction</h3>
-                            <p>Advanced Random Forest & Decision Tree models trained on clinical data achieve 96% accuracy in CKD detection.</p>
+                            <h3>{t('landing.features.prediction.title')}</h3>
+                            <p>{t('landing.features.prediction.description')}</p>
                         </div>
                         <div className="feature-card">
                             <div className="feature-icon">
                                 <FaBrain />
                             </div>
-                            <h3>Explainable AI (XAI)</h3>
-                            <p>SHAP-based explanations show exactly why the AI made its prediction. Full transparency for doctors and patients.</p>
+                            <h3>{t('landing.features.xai.title')}</h3>
+                            <p>{t('landing.features.xai.description')}</p>
                         </div>
                         <div className="feature-card">
                             <div className="feature-icon">
                                 <FaAppleAlt />
                             </div>
-                            <h3>Personalized Diet & Lifestyle</h3>
-                            <p>Get stage-specific recommendations for diet, exercise, and medication based on your CKD risk level.</p>
+                            <h3>{t('landing.features.diet.title')}</h3>
+                            <p>{t('landing.features.diet.description')}</p>
                         </div>
                         <div className="feature-card">
                             <div className="feature-icon">
                                 <FaUsers />
                             </div>
-                            <h3>Donor-Patient Matching</h3>
-                            <p>Blood group compatibility algorithm connects CKD patients with potential kidney donors efficiently.</p>
+                            <h3>{t('landing.features.donor.title')}</h3>
+                            <p>{t('landing.features.donor.description')}</p>
                         </div>
                         <div className="feature-card">
                             <div className="feature-icon">
                                 <FaVideo />
                             </div>
-                            <h3>Telemedicine Support</h3>
-                            <p>Virtual consultations with nephrologists, consultation notes, and follow-up scheduling all in one place.</p>
+                            <h3>{t('landing.features.telemedicine.title')}</h3>
+                            <p>{t('landing.features.telemedicine.description')}</p>
                         </div>
                         <div className="feature-card">
                             <div className="feature-icon">
                                 <FaChartLine />
                             </div>
-                            <h3>Risk Level Assessment</h3>
-                            <p>Not just prediction - get Low, Medium, or High risk classification based on comprehensive analysis.</p>
+                            <h3>{t('landing.features.risk.title')}</h3>
+                            <p>{t('landing.features.risk.description')}</p>
                         </div>
                     </div>
                 </div>
@@ -125,32 +128,32 @@ const LandingPage = () => {
             <section className="how-it-works">
                 <div className="container">
                     <div className="section-header">
-                        <h2>How It Works</h2>
-                        <p>CKD risk assessment in 4 transparent steps</p>
+                        <h2>{t('landing.howItWorks.title')}</h2>
+                        <p>{t('landing.howItWorks.subtitle')}</p>
                     </div>
                     <div className="steps">
                         <div className="step">
                             <div className="step-number">1</div>
-                            <h3>Enter Medical Tests</h3>
-                            <p>Input 24 medical parameters including creatinine, urea, hemoglobin, and blood pressure</p>
+                            <h3>{t('landing.howItWorks.step1.title')}</h3>
+                            <p>{t('landing.howItWorks.step1.description')}</p>
                         </div>
                         <div className="step-connector"></div>
                         <div className="step">
                             <div className="step-number">2</div>
-                            <h3>AI Analysis</h3>
-                            <p>Random Forest model processes data and predicts CKD risk with 96% accuracy</p>
+                            <h3>{t('landing.howItWorks.step2.title')}</h3>
+                            <p>{t('landing.howItWorks.step2.description')}</p>
                         </div>
                         <div className="step-connector"></div>
                         <div className="step">
                             <div className="step-number">3</div>
-                            <h3>XAI Explanation</h3>
-                            <p>SHAP shows which test results contributed most to the prediction and why</p>
+                            <h3>{t('landing.howItWorks.step3.title')}</h3>
+                            <p>{t('landing.howItWorks.step3.description')}</p>
                         </div>
                         <div className="step-connector"></div>
                         <div className="step">
                             <div className="step-number">4</div>
-                            <h3>Get Recommendations</h3>
-                            <p>Receive personalized diet, lifestyle advice, and access to telemedicine & donor matching</p>
+                            <h3>{t('landing.howItWorks.step4.title')}</h3>
+                            <p>{t('landing.howItWorks.step4.description')}</p>
                         </div>
                     </div>
                 </div>
@@ -160,21 +163,21 @@ const LandingPage = () => {
             <section className="why-section">
                 <div className="container">
                     <div className="section-header">
-                        <h2>Why Early CKD Detection Matters</h2>
-                        <p>Chronic Kidney Disease affects 10% of the global population</p>
+                        <h2>{t('landing.why.title')}</h2>
+                        <p>{t('landing.why.subtitle')}</p>
                     </div>
                     <div className="why-grid">
                         <div className="why-card">
-                            <h3>Silent Killer</h3>
-                            <p>CKD often shows no symptoms until 75% of kidney function is lost. Early detection saves lives.</p>
+                            <h3>{t('landing.why.silent.title')}</h3>
+                            <p>{t('landing.why.silent.description')}</p>
                         </div>
                         <div className="why-card">
-                            <h3>Preventable Progression</h3>
-                            <p>Caught early, CKD progression can be slowed or even reversed with proper care and lifestyle changes.</p>
+                            <h3>{t('landing.why.preventable.title')}</h3>
+                            <p>{t('landing.why.preventable.description')}</p>
                         </div>
                         <div className="why-card">
-                            <h3>Expensive Late Treatment</h3>
-                            <p>Dialysis and transplants cost lakhs. Early detection and prevention is far more affordable.</p>
+                            <h3>{t('landing.why.expensive.title')}</h3>
+                            <p>{t('landing.why.expensive.description')}</p>
                         </div>
                     </div>
                 </div>
@@ -184,10 +187,10 @@ const LandingPage = () => {
             <section className="cta">
                 <div className="container">
                     <div className="cta-content">
-                        <h2>Ready to Check Your Kidney Health?</h2>
-                        <p>Join the AI-powered CKD early detection revolution. Free screening available.</p>
+                        <h2>{t('landing.cta.title')}</h2>
+                        <p>{t('landing.cta.subtitle')}</p>
                         <Link to="/register" className="btn btn-primary btn-lg">
-                            Start Free CKD Risk Assessment
+                            {t('landing.cta.button')}
                         </Link>
                     </div>
                 </div>
@@ -199,10 +202,10 @@ const LandingPage = () => {
                     <div className="footer-content">
                         <div className="footer-brand">
                             <FaFlask className="logo-icon" />
-                            <span>CKD Predictor</span>
+                            <span>{t('landing.brand')}</span>
                         </div>
-                        <p>© 2024 Chronic Kidney Disease Prediction System with Explainable AI. Final Year Project.</p>
-                        <p className="disclaimer">This is a screening tool, not a replacement for professional medical diagnosis.</p>
+                        <p>{t('landing.footer.copyright')}</p>
+                        <p className="disclaimer">{t('landing.footer.disclaimer')}</p>
                     </div>
                 </div>
             </footer>

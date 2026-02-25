@@ -1,12 +1,15 @@
 import React, { useState, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { FaFileUpload, FaFilePdf, FaCheckCircle, FaExclamationTriangle, FaBrain, FaSpinner, FaDownload, FaInfoCircle } from 'react-icons/fa';
 import { toast } from 'react-toastify';
 import axios from 'axios';
 import { saveAs } from 'file-saver';
 import { useAuth, API_URL } from '../App';
+import { DynamicText } from '../context/TranslationContext';
 import './CKDTestForm.css';
 
 const ReportUpload = () => {
+    const { t } = useTranslation();
     const [selectedFile, setSelectedFile] = useState(null);
     const [uploading, setUploading] = useState(false);
     const [extractedData, setExtractedData] = useState(null);
@@ -153,8 +156,8 @@ const ReportUpload = () => {
                 <div className="gemini-title">
                     <FaFileUpload className="title-icon" />
                     <div>
-                        <h1>Upload Health Report</h1>
-                        <p>Upload your medical report (PDF) for automatic CKD analysis</p>
+                        <h1>{t('patient.reportUploadPage.title')}</h1>
+                        <p>{t('patient.reportUploadPage.subtitle')}</p>
                     </div>
                 </div>
             </div>
@@ -196,8 +199,8 @@ const ReportUpload = () => {
                         ) : (
                             <div>
                                 <FaFileUpload style={{ fontSize: '4rem', color: 'var(--primary-400)', marginBottom: '1rem' }} />
-                                <h3 style={{ marginBottom: '0.5rem' }}>Drop your medical report here</h3>
-                                <p style={{ color: 'var(--gray-500)' }}>or click to browse (PDF only, max 10MB)</p>
+                                <h3 style={{ marginBottom: '0.5rem' }}>{t('patient.reportUploadPage.dropText')}</h3>
+                                <p style={{ color: 'var(--gray-500)' }}>{t('patient.reportUploadPage.browseText')}</p>
                             </div>
                         )}
                     </div>
@@ -206,7 +209,7 @@ const ReportUpload = () => {
                     <div className="card" style={{ marginTop: '2rem', padding: '1.5rem' }}>
                         <h3 style={{ marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                             <FaInfoCircle style={{ color: 'var(--primary-500)' }} />
-                            Supported Medical Parameters
+                            {t('patient.reportUploadPage.supportedParams')}
                         </h3>
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0.5rem' }}>
                             {[
@@ -234,7 +237,7 @@ const ReportUpload = () => {
                                 className="gemini-btn secondary"
                                 onClick={resetUpload}
                             >
-                                Cancel
+                                {t('patient.reportUploadPage.cancel')}
                             </button>
                             <button
                                 className="gemini-btn primary"
@@ -242,9 +245,9 @@ const ReportUpload = () => {
                                 disabled={uploading}
                             >
                                 {uploading ? (
-                                    <><FaSpinner className="spin" /> Processing...</>
+                                    <><FaSpinner className="spin" /> {t('patient.reportUploadPage.processing')}</>
                                 ) : (
-                                    <><FaBrain /> Extract & Analyze</>
+                                    <><FaBrain /> {t('patient.reportUploadPage.extractAnalyze')}</>
                                 )}
                             </button>
                         </div>
@@ -258,11 +261,11 @@ const ReportUpload = () => {
                     <div className="card" style={{ padding: '2rem', background: 'linear-gradient(135deg, var(--success-50), white)' }}>
                         <h2 style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                             <FaCheckCircle style={{ color: 'var(--success-500)' }} />
-                            Parameters Extracted Successfully
+                            {t('patient.reportUploadPage.successTitle')}
                         </h2>
 
                         <p style={{ marginBottom: '1rem', color: 'var(--gray-600)' }}>
-                            Found <strong>{extractedData.parameters_found}</strong> medical parameters in your report
+                            {t('patient.reportUploadPage.foundParams')}: <strong>{extractedData.parameters_found}</strong>
                         </p>
 
                         {/* Extracted Values Table */}
@@ -302,7 +305,7 @@ const ReportUpload = () => {
 
                         <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
                             <button className="gemini-btn secondary" onClick={resetUpload}>
-                                Upload Different Report
+                                {t('patient.reportUploadPage.uploadDifferent')}
                             </button>
                             <button
                                 className="gemini-btn primary analyze"
@@ -310,9 +313,9 @@ const ReportUpload = () => {
                                 disabled={predicting}
                             >
                                 {predicting ? (
-                                    <><FaSpinner className="spin" /> Predicting...</>
+                                    <><FaSpinner className="spin" /> {t('patient.reportUploadPage.predicting')}</>
                                 ) : (
-                                    <><FaBrain /> Predict CKD</>
+                                    <><FaBrain /> {t('patient.reportUploadPage.predict')}</>
                                 )}
                             </button>
                         </div>
@@ -332,21 +335,21 @@ const ReportUpload = () => {
                                     <FaCheckCircle className="result-icon success" />
                                 )}
                                 <div>
-                                    <h2>{prediction.result === 'ckd' ? 'CKD Indicators Detected' : 'No CKD Indicators'}</h2>
-                                    <p className="result-subtitle">Analysis from uploaded report</p>
+                                    <h2>{prediction.result === 'ckd' ? t('patient.reportUploadPage.indicatorsDetected') : t('patient.reportUploadPage.noIndicators')}</h2>
+                                    <p className="result-subtitle">{t('patient.reportUploadPage.analysisSubtitle')}</p>
                                 </div>
                             </div>
 
                             <div className="result-metrics">
                                 <div className="metric">
                                     <span className="metric-value">{prediction.confidence?.toFixed(1)}%</span>
-                                    <span className="metric-label">Confidence</span>
+                                    <span className="metric-label">{t('patient.confidence')}</span>
                                 </div>
                                 <div className="metric">
                                     <span className={`metric-value risk-${prediction.risk_level?.toLowerCase()}`}>
-                                        {prediction.risk_level}
+                                        <DynamicText text={prediction.risk_level} />
                                     </span>
-                                    <span className="metric-label">Risk Level</span>
+                                    <span className="metric-label">{t('patient.riskLevel')}</span>
                                 </div>
                             </div>
 
@@ -356,26 +359,26 @@ const ReportUpload = () => {
                                     onClick={handleDownloadPdf}
                                     disabled={downloadingPdf}
                                 >
-                                    <FaDownload /> {downloadingPdf ? 'Generating...' : 'Download PDF Report'}
+                                    <FaDownload /> {downloadingPdf ? t('patient.reportUploadPage.generating') : t('patient.reportUploadPage.downloadReport')}
                                 </button>
                             </div>
 
                             <div className="result-disclaimer">
                                 <FaInfoCircle />
-                                <span>This is a screening tool. Please consult a nephrologist for proper diagnosis.</span>
+                                <span>{t('patient.reportUploadPage.disclaimer')}</span>
                             </div>
                         </div>
 
                         {/* Source Data Summary */}
                         <div className="card" style={{ marginTop: '1.5rem', padding: '1.5rem' }}>
-                            <h3 style={{ marginBottom: '1rem' }}>📋 Report Summary</h3>
-                            <p><strong>Source:</strong> {selectedFile?.name}</p>
-                            <p><strong>Parameters Used:</strong> {extractedData?.parameters_found}</p>
+                            <h3 style={{ marginBottom: '1rem' }}>📋 {t('patient.reportUploadPage.summaryTitle')}</h3>
+                            <p><strong>{t('patient.reportUploadPage.source')}:</strong> {selectedFile?.name}</p>
+                            <p><strong>{t('patient.reportUploadPage.paramsUsed')}:</strong> {extractedData?.parameters_found}</p>
                         </div>
 
                         <div className="quick-actions" style={{ marginTop: '1.5rem' }}>
                             <button className="gemini-btn secondary" onClick={resetUpload}>
-                                Upload New Report
+                                {t('patient.reportUploadPage.newReport')}
                             </button>
                         </div>
                     </div>

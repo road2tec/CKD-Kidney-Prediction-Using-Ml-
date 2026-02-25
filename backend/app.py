@@ -31,6 +31,8 @@ from routes.xai_report import xai_report_bp
 from routes.pharmacy import pharmacy_bp
 from routes.gemini_recommendations import gemini_bp
 from routes.report_upload import report_bp
+# Translation Service
+from routes.translation import translation_bp
 # WebRTC Signaling
 from routes.signaling import init_socketio
 
@@ -68,6 +70,8 @@ app.register_blueprint(xai_report_bp, url_prefix='/api/xai/report')
 app.register_blueprint(pharmacy_bp, url_prefix='/api/pharmacy')
 app.register_blueprint(gemini_bp, url_prefix='/api/gemini')
 app.register_blueprint(report_bp, url_prefix='/api/report')
+# Translation Service Blueprint
+app.register_blueprint(translation_bp, url_prefix='/api/translate')
 
 # JWT error handlers
 @jwt.expired_token_loader
@@ -126,7 +130,8 @@ def root():
             "recommendations": "/api/recommendations/lifestyle",
             "pharmacy": "/api/pharmacy/recommend",
             "donor": "/api/donor/match, /api/donor/register",
-            "telemedicine": "/api/telemedicine/create-session"
+            "telemedicine": "/api/telemedicine/create-session",
+            "translation": "/api/translate/translate, /api/translate/languages"
         }
     }), 200
 
@@ -151,7 +156,9 @@ def init_database():
         'ckd_predictions', 'xai_explanations', 'lifestyle_recommendations', 
         'donors', 'donor_matches', 'telemedicine_sessions',
         # Enhanced AI Collections
-        'hybrid_predictions', 'xai_reports', 'pharmacy_logs', 'recommendations'
+        'hybrid_predictions', 'xai_reports', 'pharmacy_logs', 'recommendations',
+        # Translation Cache
+        'translations_cache'
     ]
     
     for coll in collections:
@@ -178,7 +185,7 @@ def init_database():
 
 if __name__ == '__main__':
     print("="*60)
-    print("Smart Patient Healthcare System - Backend Server")
+    print("CKD Prediction System - Explainable AI Backend Server")
     print("="*60)
     
     # Initialize database

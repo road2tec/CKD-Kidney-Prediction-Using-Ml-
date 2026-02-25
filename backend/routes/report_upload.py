@@ -32,18 +32,238 @@ def get_db():
 
 
 def extract_text_from_pdf(file_path):
-    """Extract text from PDF file"""
+    """Extract text from PDF file using multiple methods including OCR"""
+    text = ""
+    
+    # Method 1: Try pdfplumber first (better for complex PDFs)
+    try:
+        import pdfplumber
+        with pdfplumber.open(file_path) as pdf:
+            for page in pdf.pages:
+                page_text = page.extract_text()
+                if page_text:
+                    text += page_text + "\n"
+        if text.strip():
+            print(f"PDF extraction success with pdfplumber: {len(text)} chars")
+            return text
+    except ImportError:
+        print("pdfplumber not installed, trying PyPDF2...")
+    except Exception as e:
+        print(f"pdfplumber error: {e}")
+    
+    # Method 2: Try PyPDF2
     try:
         import PyPDF2
-        
         with open(file_path, 'rb') as file:
             pdf_reader = PyPDF2.PdfReader(file)
-            text = ""
             for page in pdf_reader.pages:
-                text += page.extract_text() + "\n"
-        return text
+                page_text = page.extract_text()
+                if page_text:
+                    text += page_text + "\n"
+        if text.strip():
+            print(f"PDF extraction success with PyPDF2: {len(text)} chars")
+            return text
     except Exception as e:
-        print(f"PDF extraction error: {e}")
+        print(f"PyPDF2 error: {e}")
+    
+    # Method 3: Try pypdf
+    try:
+        from pypdf import PdfReader
+        reader = PdfReader(file_path)
+        for page in reader.pages:
+            page_text = page.extract_text()
+            if page_text:
+                text += page_text + "\n"
+        if text.strip():
+            print(f"PDF extraction success with pypdf: {len(text)} chars")
+            return text
+    except ImportError:
+        pass
+    except Exception as e:
+        print(f"pypdf error: {e}")
+    
+    # Method 4: OCR for scanned/image-based PDFs
+    print("Attempting OCR extraction for scanned PDF...")
+    ocr_text = extract_text_with_ocr(file_path)
+    if ocr_text and ocr_text.strip():
+        print(f"PDF extraction success with OCR: {len(ocr_text)} chars")
+        return ocr_text
+    
+    # If no text extracted, return None
+    print("Could not extract text from PDF using any method")
+    return None
+
+
+def extract_text_with_ocr(file_path):
+    """Extract text from scanned PDF using OCR (Tesseract)"""
+    try:
+        from pdf2image import convert_from_path
+        import pytesseract
+        from PIL import Image
+        
+        # Set Tesseract path for Windows if needed
+        # Common installation paths on Windows
+        tesseract_paths = [
+            r'C:\Program Files\Tesseract-OCR\tesseract.exe',
+            r'C:\Program Files (x86)\Tesseract-OCR\tesseract.exe',
+            r'C:\Tesseract-OCR\tesseract.exe'
+        ]
+        
+        for path in tesseract_paths:
+            if os.path.exists(path):
+                pytesseract.pytesseract.tesseract_cmd = path
+                break
+        
+        # Convert PDF pages to images
+        # Try with poppler_path for Windows
+        poppler_paths = [
+            r'C:\Program Files\poppler\bin',
+            r'C:\poppler\bin',
+            r'C:\Program Files\poppler-24.02.0\Library\bin',
+            None  # Try without specifying path (if in PATH)
+        ]
+        
+        images = None
+        for poppler_path in poppler_paths:
+            try:
+                if poppler_path and os.path.exists(poppler_path):
+                    images = convert_from_path(file_path, poppler_path=poppler_path, dpi=300)
+                elif poppler_path is None:
+                    images = convert_from_path(file_path, dpi=300)
+                if images:
+                    break
+            except Exception as e:
+                continue
+        
+        if not images:
+            print("Could not convert PDF to images. Poppler may not be installed.")
+            print("Install Poppler for Windows: https://github.com/oschwartz10612/poppler-windows/releases")
+            return None
+        
+        # Extract text from each page using OCR
+        text = ""
+        for i, image in enumerate(images):
+            print(f"Running OCR on page {i+1}...")
+            page_text = pytesseract.image_to_string(image, lang='eng')
+            if page_text:
+                text += page_text + "\n"
+        
+        return text if text.strip() else None
+        
+    except ImportError as e:
+        print(f"OCR dependencies not installed: {e}")
+        print("Install with: pip install pytesseract pdf2image Pillow")
+        print("Also install Tesseract OCR: https://github.com/tesseract-ocr/tesseract")
+        return None
+    except Exception as e:
+        print(f"OCR extraction error: {e}")
+        return None
+
+
+def extract_with_gemini_ai(file_path):
+    """Extract medical parameters from PDF using Gemini AI vision"""
+    try:
+        import google.generativeai as genai
+        from pdf2image import convert_from_path
+        import base64
+        from io import BytesIO
+        
+        # Configure Gemini API
+        api_key = os.environ.get('GEMINI_API_KEY', 'AIzaSyD06VglL-lIQ-eDrqvCXB3Rg4fwRpIE46o')
+        genai.configure(api_key=api_key)
+        
+        # Convert PDF to images
+        try:
+            images = convert_from_path(file_path, dpi=200, first_page=1, last_page=3)
+        except Exception as e:
+            print(f"Could not convert PDF to images for Gemini: {e}")
+            return None
+        
+        if not images:
+            return None
+        
+        # Take first page image
+        img = images[0]
+        
+        # Convert to base64 for Gemini
+        buffered = BytesIO()
+        img.save(buffered, format="PNG")
+        img_base64 = base64.b64encode(buffered.getvalue()).decode()
+        
+        # Create Gemini model with vision capability
+        model = genai.GenerativeModel('gemini-1.5-flash')
+        
+        # Prompt for medical data extraction
+        prompt = """Analyze this medical report image and extract the following CKD (Chronic Kidney Disease) related parameters. 
+        
+Return ONLY a valid JSON object with these exact keys (use null for values not found):
+{
+    "age": <number>,
+    "bp": <blood pressure number>,
+    "sg": <specific gravity like 1.015>,
+    "al": <albumin 0-5>,
+    "su": <sugar 0-5>,
+    "rbc": "normal" or "abnormal",
+    "pc": "normal" or "abnormal",
+    "pcc": "present" or "notpresent",
+    "ba": "present" or "notpresent",
+    "bgr": <blood glucose random>,
+    "bu": <blood urea>,
+    "sc": <serum creatinine>,
+    "sod": <sodium>,
+    "pot": <potassium>,
+    "hemo": <hemoglobin>,
+    "pcv": <packed cell volume>,
+    "wc": <white blood cell count>,
+    "rc": <red blood cell count>,
+    "htn": "yes" or "no",
+    "dm": "yes" or "no",
+    "cad": "yes" or "no",
+    "appet": "good" or "poor",
+    "pe": "yes" or "no",
+    "ane": "yes" or "no"
+}
+
+Important: Return ONLY the JSON object, no other text."""
+
+        # Send image to Gemini
+        response = model.generate_content([
+            prompt,
+            {"mime_type": "image/png", "data": img_base64}
+        ])
+        
+        # Parse response
+        response_text = response.text.strip()
+        
+        # Try to extract JSON from response
+        import json
+        
+        # Clean up response (remove markdown code blocks if present)
+        if '```json' in response_text:
+            response_text = response_text.split('```json')[1].split('```')[0]
+        elif '```' in response_text:
+            response_text = response_text.split('```')[1].split('```')[0]
+        
+        extracted_values = json.loads(response_text)
+        
+        # Filter out null values
+        extracted_values = {k: v for k, v in extracted_values.items() if v is not None}
+        
+        if extracted_values:
+            # Convert to prediction format
+            prediction_data = convert_to_prediction_format(extracted_values)
+            return {
+                'extracted_values': extracted_values,
+                'prediction_data': prediction_data
+            }
+        
+        return None
+        
+    except ImportError as e:
+        print(f"Gemini AI dependencies not available: {e}")
+        return None
+    except Exception as e:
+        print(f"Gemini AI extraction error: {e}")
         return None
 
 
@@ -274,10 +494,29 @@ def upload_health_report():
             # Extract text from PDF
             extracted_text = extract_text_from_pdf(temp_path)
             
-            if not extracted_text:
+            # If text extraction failed, try Gemini AI
+            if not extracted_text or len(extracted_text.strip()) < 50:
+                print("Text extraction failed or too short, trying Gemini AI...")
+                gemini_result = extract_with_gemini_ai(temp_path)
+                if gemini_result:
+                    return jsonify({
+                        'success': True,
+                        'message': 'Report processed using AI analysis',
+                        'extracted_values': gemini_result.get('extracted_values', {}),
+                        'prediction_data': gemini_result.get('prediction_data', {}),
+                        'parameters_found': len(gemini_result.get('extracted_values', {})),
+                        'extraction_method': 'gemini_ai'
+                    })
+                
+                # If Gemini also failed, return helpful error
                 return jsonify({
                     'success': False,
-                    'message': 'Could not extract text from PDF. Please ensure the PDF contains readable text.'
+                    'message': 'Could not extract text from this PDF. This might be a scanned document. Please try: 1) A text-based PDF, 2) Manual data entry, or 3) A clearer scan.',
+                    'suggestions': [
+                        'Use a PDF with selectable text (not a scanned image)',
+                        'Try saving the document as a new PDF from the source application',
+                        'Use the manual CKD test form to enter values directly'
+                    ]
                 }), 400
             
             # Parse medical values

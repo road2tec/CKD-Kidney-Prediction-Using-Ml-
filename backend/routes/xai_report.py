@@ -546,3 +546,196 @@ def get_report_history():
             'success': False,
             'message': str(e)
         }), 500
+
+
+@xai_report_bp.route('/share', methods=['POST'])
+@jwt_required()
+def share_report():
+    """Share CKD report via email using Gmail SMTP"""
+    try:
+        from app import db
+        import json as json_lib
+        import smtplib
+        from email.mime.multipart import MIMEMultipart
+        from email.mime.text import MIMEText
+        from email.mime.application import MIMEApplication
+        
+        current_user = get_jwt_identity()
+        data = request.get_json()
+        
+        prediction_id = data.get('prediction_id')
+        recipient_email = data.get('recipient_email')
+        patient_name = data.get('patient_name', 'Patient')
+        
+        if not prediction_id or not recipient_email:
+            return jsonify({
+                'success': False,
+                'message': 'Prediction ID and recipient email are required'
+            }), 400
+        
+        # Get user info
+        if isinstance(current_user, dict):
+            user_email = current_user.get('email', '')
+        elif isinstance(current_user, str) and current_user.startswith('{'):
+            try:
+                user_data = json_lib.loads(current_user)
+                user_email = user_data.get('email', '')
+            except:
+                user_email = current_user
+        else:
+            user_email = current_user
+        
+        # Get the prediction
+        prediction = db.hybrid_predictions.find_one({'_id': ObjectId(prediction_id)})
+        if not prediction:
+            prediction = db.ckd_predictions.find_one({'_id': ObjectId(prediction_id)})
+        
+        if not prediction:
+            return jsonify({
+                'success': False,
+                'message': 'Prediction not found'
+            }), 404
+        
+        # Gmail SMTP Configuration
+        smtp_host = 'smtp.gmail.com'
+        smtp_port = 587
+        smtp_user = 'sagarbawankule334@gmail.com'
+        smtp_pass = 'tocivdwjfniqeyad'
+        
+        # Log the share action
+        share_record = {
+            'prediction_id': prediction_id,
+            'shared_by': user_email,
+            'shared_to': recipient_email,
+            'patient_name': patient_name,
+            'shared_at': datetime.utcnow(),
+            'share_method': 'email',
+            'status': 'pending'
+        }
+        
+        try:
+            # Generate PDF
+            user_info = db.users.find_one({'email': user_email})
+            patient_info = {
+                'name': user_info.get('name', patient_name) if user_info else patient_name,
+                'email': user_email
+            }
+            prediction['prediction_id'] = str(prediction['_id'])
+            pdf_bytes, error = generate_pdf_report(prediction, patient_info)
+            
+            if not pdf_bytes:
+                return jsonify({
+                    'success': False,
+                    'message': f'Failed to generate PDF: {error}'
+                }), 500
+            
+            # Create email
+            msg = MIMEMultipart()
+            msg['From'] = f'CKD Prediction System <{smtp_user}>'
+            msg['To'] = recipient_email
+            msg['Subject'] = f'CKD Screening Report - {patient_name}'
+            
+            # Email body
+            pred_result = prediction.get('prediction', {})
+            result_text = 'CKD Detected' if pred_result.get('result') == 'ckd' else 'No CKD Detected'
+            risk_level = pred_result.get('risk_level', 'N/A')
+            confidence = pred_result.get('confidence', 0)
+            
+            html_body = f"""
+            <html>
+            <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+                <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+                    <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; border-radius: 10px 10px 0 0; text-align: center;">
+                        <h1 style="margin: 0;">🏥 CKD Screening Report</h1>
+                        <p style="margin: 5px 0 0;">Explainable AI-Powered Assessment</p>
+                    </div>
+                    
+                    <div style="background: #f8f9fa; padding: 20px; border: 1px solid #e9ecef;">
+                        <p>Dear Recipient,</p>
+                        <p>Please find attached the CKD (Chronic Kidney Disease) screening report for <strong>{patient_name}</strong>.</p>
+                        
+                        <div style="background: white; border-radius: 8px; padding: 15px; margin: 20px 0; border-left: 4px solid {'#dc3545' if pred_result.get('result') == 'ckd' else '#28a745'};">
+                            <h3 style="margin: 0 0 10px; color: #333;">📊 Report Summary</h3>
+                            <table style="width: 100%; border-collapse: collapse;">
+                                <tr>
+                                    <td style="padding: 8px 0; border-bottom: 1px solid #eee;"><strong>Result:</strong></td>
+                                    <td style="padding: 8px 0; border-bottom: 1px solid #eee; color: {'#dc3545' if pred_result.get('result') == 'ckd' else '#28a745'}; font-weight: bold;">{result_text}</td>
+                                </tr>
+                                <tr>
+                                    <td style="padding: 8px 0; border-bottom: 1px solid #eee;"><strong>Risk Level:</strong></td>
+                                    <td style="padding: 8px 0; border-bottom: 1px solid #eee;">{risk_level}</td>
+                                </tr>
+                                <tr>
+                                    <td style="padding: 8px 0; border-bottom: 1px solid #eee;"><strong>Confidence:</strong></td>
+                                    <td style="padding: 8px 0; border-bottom: 1px solid #eee;">{confidence:.1f}%</td>
+                                </tr>
+                                <tr>
+                                    <td style="padding: 8px 0;"><strong>Date:</strong></td>
+                                    <td style="padding: 8px 0;">{datetime.now().strftime('%B %d, %Y')}</td>
+                                </tr>
+                            </table>
+                        </div>
+                        
+                        <p>📎 <strong>The detailed PDF report is attached to this email.</strong></p>
+                        
+                        <div style="background: #fff3cd; border: 1px solid #ffc107; border-radius: 5px; padding: 15px; margin-top: 20px;">
+                            <p style="margin: 0; color: #856404;"><strong>⚠️ Important:</strong> This report is generated by an AI-powered Clinical Decision Support System and is for informational purposes only. Please consult a qualified healthcare provider for proper diagnosis and treatment.</p>
+                        </div>
+                    </div>
+                    
+                    <div style="background: #333; color: white; padding: 15px; border-radius: 0 0 10px 10px; text-align: center; font-size: 12px;">
+                        <p style="margin: 0;">Generated by CKD Prediction System</p>
+                        <p style="margin: 5px 0 0; color: #aaa;">Explainable AI-Based Chronic Kidney Disease Assessment</p>
+                    </div>
+                </div>
+            </body>
+            </html>
+            """
+            
+            msg.attach(MIMEText(html_body, 'html'))
+            
+            # Attach PDF
+            pdf_attachment = MIMEApplication(pdf_bytes, _subtype='pdf')
+            pdf_attachment.add_header('Content-Disposition', 'attachment', 
+                                    filename=f'CKD_Report_{prediction_id[:8]}.pdf')
+            msg.attach(pdf_attachment)
+            
+            # Send email via Gmail SMTP
+            with smtplib.SMTP(smtp_host, smtp_port) as server:
+                server.starttls()
+                server.login(smtp_user, smtp_pass)
+                server.send_message(msg)
+            
+            share_record['status'] = 'sent'
+            db.report_shares.insert_one(share_record)
+            
+            return jsonify({
+                'success': True,
+                'message': f'Report successfully sent to {recipient_email}',
+                'method': 'email'
+            })
+                
+        except smtplib.SMTPAuthenticationError as auth_error:
+            share_record['status'] = 'failed'
+            share_record['error'] = 'SMTP Authentication failed'
+            db.report_shares.insert_one(share_record)
+            return jsonify({
+                'success': False,
+                'message': 'Email authentication failed. Please check SMTP credentials.'
+            }), 500
+            
+        except smtplib.SMTPException as smtp_error:
+            share_record['status'] = 'failed'
+            share_record['error'] = str(smtp_error)
+            db.report_shares.insert_one(share_record)
+            return jsonify({
+                'success': False,
+                'message': f'Failed to send email: {str(smtp_error)}'
+            }), 500
+        
+    except Exception as e:
+        print(f"Share report error: {e}")
+        return jsonify({
+            'success': False,
+            'message': str(e)
+        }), 500

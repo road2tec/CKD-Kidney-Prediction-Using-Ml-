@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Routes, Route, Link, useNavigate } from 'react-router-dom';
-import { FaHeartbeat, FaCalendarAlt, FaHistory, FaSignOutAlt, FaUser, FaFlask, FaFileDownload, FaSpinner, FaCheckCircle, FaExclamationTriangle, FaVideo, FaPills, FaHandHoldingHeart, FaUserMd, FaPhone, FaClinicMedical, FaPhoneAlt } from 'react-icons/fa';
+import { useTranslation } from 'react-i18next';
+import { FaHeartbeat, FaCalendarAlt, FaHistory, FaSignOutAlt, FaUser, FaFlask, FaFileDownload, FaSpinner, FaCheckCircle, FaExclamationTriangle, FaVideo, FaPills, FaHandHoldingHeart, FaUserMd, FaPhone, FaClinicMedical, FaPhoneAlt, FaShareAlt, FaWhatsapp, FaEnvelope, FaTimes, FaCopy, FaTelegram } from 'react-icons/fa';
 import { toast } from 'react-toastify';
 import axios from 'axios';
 import { saveAs } from 'file-saver';
@@ -9,13 +10,20 @@ import './Dashboard.css';
 import CKDTestForm from './CKDTestForm';
 import ReportUpload from './ReportUpload';
 import VideoCall from '../components/VideoCall';
+import LanguageSwitcher from '../components/LanguageSwitcher';
+import { DynamicText } from '../context/TranslationContext';
 
 
 // CKD Test History Component
 const CKDTestHistory = () => {
+    const { t } = useTranslation();
     const [history, setHistory] = useState([]);
     const [loading, setLoading] = useState(true);
-    const { getToken } = useAuth();
+    const [showShareModal, setShowShareModal] = useState(false);
+    const [selectedRecord, setSelectedRecord] = useState(null);
+    const [shareEmail, setShareEmail] = useState('');
+    const [sharing, setSharing] = useState(false);
+    const { getToken, user } = useAuth();
 
     useEffect(() => {
         fetchHistory();
@@ -51,6 +59,173 @@ const CKDTestHistory = () => {
         }
     };
 
+    const openShareModal = (record) => {
+        setSelectedRecord(record);
+        setShareEmail('');
+        setShowShareModal(true);
+    };
+
+    const closeShareModal = () => {
+        setShowShareModal(false);
+        setSelectedRecord(null);
+        setShareEmail('');
+    };
+
+    const getReportUrl = (predictionId) => {
+        // Generate a shareable report URL
+        return `${window.location.origin}/report/${predictionId}`;
+    };
+
+    const shareViaEmail = async () => {
+        if (!shareEmail.trim()) {
+            toast.error('Please enter an email address');
+            return;
+        }
+
+        // Validate email format
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(shareEmail)) {
+            toast.error('Please enter a valid email address');
+            return;
+        }
+
+        setSharing(true);
+        toast.info('Sending email with PDF report...');
+
+        try {
+            // Call backend API to send email with PDF attachment
+            const response = await axios.post(`${API_URL}/xai/report/share`, {
+                prediction_id: selectedRecord._id,
+                recipient_email: shareEmail,
+                patient_name: user?.name || 'Patient'
+            }, {
+                headers: { Authorization: `Bearer ${getToken()}` }
+            });
+
+            if (response.data.success) {
+                toast.success(`✅ Report sent successfully to ${shareEmail}!`);
+                closeShareModal();
+            } else {
+                toast.error(response.data.message || 'Failed to send email');
+            }
+        } catch (error) {
+            console.error('Email share error:', error);
+            const errorMessage = error.response?.data?.message || 'Failed to send email. Please try again.';
+            toast.error(errorMessage);
+        } finally {
+            setSharing(false);
+        }
+    };
+
+    const shareViaWhatsApp = async () => {
+        toast.info('Downloading PDF...');
+
+        try {
+            // Download the PDF first
+            const response = await axios.get(`${API_URL}/xai/report/pdf/${selectedRecord._id}`, {
+                headers: { Authorization: `Bearer ${getToken()}` },
+                responseType: 'blob'
+            });
+
+            const pdfBlob = new Blob([response.data], { type: 'application/pdf' });
+            const fileName = `CKD_Report_${selectedRecord._id.substring(0, 8)}.pdf`;
+
+            // Download PDF to user's computer
+            saveAs(pdfBlob, fileName);
+
+            // Open WhatsApp with message
+            const text = encodeURIComponent(
+                `🏥 *CKD Screening Report*\n\n📄 I've downloaded my CKD report PDF to share with you.\n\n👤 *Patient:* ${user?.name || 'Patient'}\n📅 *Date:* ${formatDate(selectedRecord.timestamp)}\n📊 *Result:* ${selectedRecord.prediction?.result === 'ckd' ? '⚠️ CKD Detected' : '✅ No CKD Detected'}\n📈 *Risk Level:* ${selectedRecord.prediction?.risk_level || 'N/A'}\n🎯 *Confidence:* ${selectedRecord.prediction?.confidence?.toFixed(1)}%\n\n📎 *I will attach the PDF file in the next message.*\n\n_Generated by CKD Prediction System_`
+            );
+
+            // Open WhatsApp Web
+            window.open(`https://web.whatsapp.com/send?text=${text}`, '_blank');
+
+            toast.success('PDF downloaded! WhatsApp opened - attach the PDF file and send.');
+            closeShareModal();
+        } catch (error) {
+            console.error('WhatsApp share error:', error);
+            toast.error('Failed to download PDF. Please try again.');
+        }
+    };
+
+    const shareViaTelegram = async () => {
+        toast.info('Downloading PDF...');
+
+        try {
+            // Download the PDF first
+            const response = await axios.get(`${API_URL}/xai/report/pdf/${selectedRecord._id}`, {
+                headers: { Authorization: `Bearer ${getToken()}` },
+                responseType: 'blob'
+            });
+
+            const pdfBlob = new Blob([response.data], { type: 'application/pdf' });
+            const fileName = `CKD_Report_${selectedRecord._id.substring(0, 8)}.pdf`;
+
+            // Download PDF to user's computer
+            saveAs(pdfBlob, fileName);
+
+            // Open Telegram with message
+            const text = encodeURIComponent(
+                `🏥 CKD Screening Report\n\n📄 I've downloaded my CKD report PDF to share with you.\n\n👤 Patient: ${user?.name || 'Patient'}\n📅 Date: ${formatDate(selectedRecord.timestamp)}\n📊 Result: ${selectedRecord.prediction?.result === 'ckd' ? '⚠️ CKD Detected' : '✅ No CKD Detected'}\n📈 Risk Level: ${selectedRecord.prediction?.risk_level || 'N/A'}\n\n📎 I will attach the PDF file next.`
+            );
+
+            // Open Telegram Web
+            window.open(`https://telegram.me/share/url?url=&text=${text}`, '_blank');
+
+            toast.success('PDF downloaded! Telegram opened - attach the PDF file and send.');
+            closeShareModal();
+        } catch (error) {
+            console.error('Telegram share error:', error);
+            toast.error('Failed to download PDF. Please try again.');
+        }
+    };
+
+    const copyToClipboard = () => {
+        const text = `CKD Screening Report\n\nPatient: ${user?.name || 'Patient'}\nDate: ${formatDate(selectedRecord.timestamp)}\nResult: ${selectedRecord.prediction?.result === 'ckd' ? 'CKD Detected' : 'No CKD Detected'}\nRisk Level: ${selectedRecord.prediction?.risk_level || 'N/A'}\nConfidence: ${selectedRecord.prediction?.confidence?.toFixed(1)}%\n\nGenerated by CKD Prediction System`;
+
+        navigator.clipboard.writeText(text).then(() => {
+            toast.success('Report details copied to clipboard!');
+        }).catch(() => {
+            toast.error('Failed to copy');
+        });
+    };
+
+    const nativeShare = async () => {
+        toast.info('Downloading PDF for sharing...');
+
+        try {
+            // Download PDF first
+            const response = await axios.get(`${API_URL}/xai/report/pdf/${selectedRecord._id}`, {
+                headers: { Authorization: `Bearer ${getToken()}` },
+                responseType: 'blob'
+            });
+
+            const pdfBlob = new Blob([response.data], { type: 'application/pdf' });
+            const fileName = `CKD_Report_${selectedRecord._id.substring(0, 8)}.pdf`;
+            const pdfFile = new File([pdfBlob], fileName, { type: 'application/pdf' });
+
+            // Use native share if available
+            if (navigator.share && navigator.canShare && navigator.canShare({ files: [pdfFile] })) {
+                await navigator.share({
+                    title: 'CKD Screening Report',
+                    text: `CKD Report for ${user?.name || 'Patient'}`,
+                    files: [pdfFile]
+                });
+                toast.success('PDF shared successfully!');
+            } else {
+                saveAs(pdfBlob, fileName);
+                toast.success('PDF downloaded! Use the downloaded file to share.');
+            }
+            closeShareModal();
+        } catch (error) {
+            if (error.name !== 'AbortError') {
+                console.error('Native share error:', error);
+                toast.error('Share failed. Please try Download PDF button.');
+            }
+        }
+    };
+
     const formatDate = (timestamp) => {
         if (!timestamp) return 'N/A';
         return new Date(timestamp).toLocaleDateString('en-IN', {
@@ -63,15 +238,15 @@ const CKDTestHistory = () => {
     return (
         <div className="page-content animate-fadeIn">
             <div className="page-header">
-                <h1><FaHistory /> CKD Test History</h1>
-                <p>View your past CKD screening results and download reports</p>
+                <h1><FaHistory /> {t('patient.testHistory')}</h1>
+                <p>{t('patient.testHistoryDesc')}</p>
             </div>
             {history.length === 0 ? (
                 <div className="empty-state card">
                     <FaFlask className="empty-icon" />
-                    <h3>No CKD Tests Yet</h3>
-                    <p>Take your first CKD screening test to get started</p>
-                    <Link to="/patient" className="btn btn-primary">Take CKD Test</Link>
+                    <h3>{t('patient.noTests')}</h3>
+                    <p>{t('patient.noTestsDesc')}</p>
+                    <Link to="/patient" className="btn btn-primary">{t('patient.takeTest')}</Link>
                 </div>
             ) : (
                 <div className="history-list">
@@ -85,18 +260,18 @@ const CKDTestHistory = () => {
                                         <FaCheckCircle className="result-icon success" />
                                     )}
                                     <div>
-                                        <h3>{record.prediction?.result === 'ckd' ? 'CKD Detected' : 'No CKD Detected'}</h3>
+                                        <h3>{record.prediction?.result === 'ckd' ? t('patient.ckdDetected') : t('patient.noCkdDetected')}</h3>
                                         <span className="history-date">{formatDate(record.timestamp)}</span>
                                     </div>
                                 </div>
                                 <span className={`badge ${record.prediction?.risk_level === 'High' ? 'badge-error' : 'badge-success'}`}>
-                                    {record.prediction?.risk_level || 'N/A'} Risk
+                                    {record.prediction?.risk_level || 'N/A'} {t('patient.riskLevel')}
                                 </span>
                             </div>
                             <div className="history-body">
                                 <div className="history-metrics">
                                     <div className="metric-item">
-                                        <span className="metric-label">Confidence</span>
+                                        <span className="metric-label">{t('patient.confidence')}</span>
                                         <span className="metric-value">{record.prediction?.confidence?.toFixed(1)}%</span>
                                     </div>
                                     <div className="metric-item">
@@ -107,11 +282,77 @@ const CKDTestHistory = () => {
                             </div>
                             <div className="history-footer">
                                 <button className="btn btn-outline btn-sm" onClick={() => downloadPdf(record._id)}>
-                                    <FaFileDownload /> Download PDF
+                                    <FaFileDownload /> {t('patient.downloadPdf')}
+                                </button>
+                                <button className="btn btn-primary btn-sm" onClick={() => openShareModal(record)}>
+                                    <FaShareAlt /> {t('patient.shareReport')}
                                 </button>
                             </div>
                         </div>
                     ))}
+                </div>
+            )}
+
+            {/* Share Modal */}
+            {showShareModal && selectedRecord && (
+                <div className="share-modal-overlay" onClick={closeShareModal}>
+                    <div className="share-modal" onClick={(e) => e.stopPropagation()}>
+                        <div className="share-modal-header">
+                            <h3><FaShareAlt /> {t('patient.shareReport')}</h3>
+                            <button className="close-btn" onClick={closeShareModal}><FaTimes /></button>
+                        </div>
+
+                        <div className="share-modal-body">
+                            <div className="share-report-info">
+                                <p><strong>Report Date:</strong> {formatDate(selectedRecord.timestamp)}</p>
+                                <p><strong>Result:</strong> {selectedRecord.prediction?.result === 'ckd' ? 'CKD Detected' : 'No CKD Detected'}</p>
+                                <p><strong>Risk Level:</strong> {selectedRecord.prediction?.risk_level || 'N/A'}</p>
+                            </div>
+
+                            {/* Email Share */}
+                            <div className="share-section">
+                                <label>Share via Email</label>
+                                <div className="share-email-input">
+                                    <input
+                                        type="email"
+                                        className="form-input"
+                                        placeholder="Enter recipient email"
+                                        value={shareEmail}
+                                        onChange={(e) => setShareEmail(e.target.value)}
+                                    />
+                                    <button
+                                        className="btn btn-primary"
+                                        onClick={shareViaEmail}
+                                        disabled={sharing}
+                                    >
+                                        {sharing ? <FaSpinner className="spin" /> : <FaEnvelope />}
+                                        Send
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* Quick Share Options */}
+                            <div className="share-section">
+                                <label>Quick Share</label>
+                                <div className="share-buttons">
+                                    <button className="share-btn whatsapp" onClick={shareViaWhatsApp}>
+                                        <FaWhatsapp /> WhatsApp
+                                    </button>
+                                    <button className="share-btn telegram" onClick={shareViaTelegram}>
+                                        <FaTelegram /> Telegram
+                                    </button>
+                                    <button className="share-btn copy" onClick={copyToClipboard}>
+                                        <FaCopy /> Copy Text
+                                    </button>
+                                    {navigator.share && (
+                                        <button className="share-btn native" onClick={nativeShare}>
+                                            <FaShareAlt /> More...
+                                        </button>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             )}
         </div>
@@ -120,8 +361,9 @@ const CKDTestHistory = () => {
 
 // Telemedicine Component
 const Telemedicine = () => {
-    const [sessions, setSessions] = useState([]);
+    const { t } = useTranslation();
     const [slots, setSlots] = useState([]);
+    const [sessions, setSessions] = useState([]);
     const [loading, setLoading] = useState(true);
     const [activeCall, setActiveCall] = useState(null); // { sessionId, token }
     const { getToken, user } = useAuth();
@@ -226,8 +468,8 @@ const Telemedicine = () => {
     return (
         <div className="page-content animate-fadeIn">
             <div className="page-header">
-                <h1><FaVideo /> Telemedicine Consultation</h1>
-                <p>Book video/audio consultations with CKD specialists</p>
+                <h1><FaVideo /> {t('patient.telemedicine')}</h1>
+                <p>{t('patient.telemedicineDesc')}</p>
             </div>
 
             <div className="feature-grid">
@@ -265,9 +507,9 @@ const Telemedicine = () => {
             </div>
 
             <div className="card" style={{ marginTop: '2rem' }}>
-                <h3 style={{ marginBottom: '1rem' }}>My Scheduled Sessions</h3>
+                <h3 style={{ marginBottom: '1rem' }}>{t('patient.myAppointments')}</h3>
                 {sessions.length === 0 ? (
-                    <p style={{ color: 'var(--gray-500)' }}>No scheduled sessions. Book a consultation above.</p>
+                    <p style={{ color: 'var(--gray-500)' }}>{t('patient.noAppointmentsDesc')}</p>
                 ) : (
                     <div className="sessions-list">
                         {sessions.map((session) => (
@@ -279,7 +521,7 @@ const Telemedicine = () => {
                                 </div>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                                     <span className={`badge ${session.status === 'scheduled' ? 'badge-primary' : session.status === 'completed' ? 'badge-success' : 'badge-warning'}`}>
-                                        {session.status}
+                                        {t(`patient.${session.status}`) || session.status}
                                     </span>
                                     {(session.status === 'scheduled' || session.status === 'active') && (
                                         <button
@@ -302,6 +544,7 @@ const Telemedicine = () => {
 
 // Donor Matching Component
 const DonorMatching = () => {
+    const { t } = useTranslation();
     const [donorProfile, setDonorProfile] = useState(null);
     const [matches, setMatches] = useState([]);
     const [stats, setStats] = useState({});
@@ -387,59 +630,59 @@ const DonorMatching = () => {
     return (
         <div className="page-content animate-fadeIn">
             <div className="page-header">
-                <h1><FaHandHoldingHeart /> Donor-Patient Matching</h1>
-                <p>Register as a kidney donor or find compatible donors</p>
+                <h1><FaHandHoldingHeart /> {t('patient.donorMatch')}</h1>
+                <p>{t('patient.registerAsDonorTitle')}</p>
             </div>
 
             <div className="stats-grid">
                 <div className="stat-card">
                     <div className="stat-value">{stats.total_registered_donors || 0}</div>
-                    <div className="stat-label">Registered Donors</div>
+                    <div className="stat-label">{t('patient.registeredDonors')}</div>
                 </div>
                 <div className="stat-card">
                     <div className="stat-value">{stats.available_donors || 0}</div>
-                    <div className="stat-label">Available</div>
+                    <div className="stat-label">{t('patient.available')}</div>
                 </div>
                 <div className="stat-card">
                     <div className="stat-value">{stats.successful_matches || 0}</div>
-                    <div className="stat-label">Successful Matches</div>
+                    <div className="stat-label">{t('patient.successfulMatches')}</div>
                 </div>
             </div>
 
             <div className="card" style={{ marginTop: '2rem' }}>
-                <h3>Your Donor Status</h3>
+                <h3>{t('patient.yourDonorStatus')}</h3>
                 {donorProfile ? (
                     <div className="donor-profile">
-                        <p><strong>Blood Group:</strong> {donorProfile.blood_group}</p>
-                        <p><strong>Status:</strong> <span className={`badge ${donorProfile.is_available ? 'badge-success' : 'badge-warning'}`}>
-                            {donorProfile.is_available ? 'Available' : 'Unavailable'}
+                        <p><strong>{t('patient.bloodType')}:</strong> {donorProfile.blood_group}</p>
+                        <p><strong>{t('patient.status')}:</strong> <span className={`badge ${donorProfile.is_available ? 'badge-success' : 'badge-warning'}`}>
+                            {donorProfile.is_available ? t('patient.available') : t('patient.unavailable')}
                         </span></p>
-                        <p><strong>Registered:</strong> {donorProfile.registration_date ? new Date(donorProfile.registration_date).toLocaleDateString() : 'N/A'}</p>
+                        <p><strong>{t('patient.registered')}:</strong> {donorProfile.registration_date ? new Date(donorProfile.registration_date).toLocaleDateString() : 'N/A'}</p>
                     </div>
                 ) : (
                     <div>
-                        <p style={{ marginBottom: '1rem' }}>You are not registered as a donor yet.</p>
+                        <p style={{ marginBottom: '1rem' }}>{t('patient.notRegisteredMsg')}</p>
                         {!showRegister ? (
                             <button className="btn btn-primary" onClick={() => setShowRegister(true)}>
-                                <FaHandHoldingHeart /> Register as Donor
+                                <FaHandHoldingHeart /> {t('patient.registerButton')}
                             </button>
                         ) : (
                             <div className="donor-form">
                                 <div className="form-row">
                                     <select className="form-select" value={formData.blood_group} onChange={e => setFormData({ ...formData, blood_group: e.target.value })}>
-                                        <option value="">Blood Group</option>
+                                        <option value="">{t('patient.bloodType')}</option>
                                         <option value="A+">A+</option><option value="A-">A-</option>
                                         <option value="B+">B+</option><option value="B-">B-</option>
                                         <option value="AB+">AB+</option><option value="AB-">AB-</option>
                                         <option value="O+">O+</option><option value="O-">O-</option>
                                     </select>
-                                    <input className="form-input" type="number" placeholder="Age" value={formData.age} onChange={e => setFormData({ ...formData, age: e.target.value })} />
+                                    <input className="form-input" type="number" placeholder={t('patient.age')} value={formData.age} onChange={e => setFormData({ ...formData, age: e.target.value })} />
                                 </div>
                                 <div className="form-row">
-                                    <input className="form-input" type="number" placeholder="Weight (kg)" value={formData.weight} onChange={e => setFormData({ ...formData, weight: e.target.value })} />
-                                    <input className="form-input" type="tel" placeholder="Contact Phone" value={formData.contact_phone} onChange={e => setFormData({ ...formData, contact_phone: e.target.value })} />
+                                    <input className="form-input" type="number" placeholder={t('patient.weight')} value={formData.weight} onChange={e => setFormData({ ...formData, weight: e.target.value })} />
+                                    <input className="form-input" type="tel" placeholder={t('patient.contact')} value={formData.contact_phone} onChange={e => setFormData({ ...formData, contact_phone: e.target.value })} />
                                 </div>
-                                <button className="btn btn-primary" onClick={registerAsDonor}>Submit Registration</button>
+                                <button className="btn btn-primary" onClick={registerAsDonor}>{t('patient.submitRegistration')}</button>
                             </div>
                         )}
                     </div>
@@ -447,9 +690,9 @@ const DonorMatching = () => {
             </div>
 
             <div className="card" style={{ marginTop: '2rem' }}>
-                <h3>Find Compatible Donors</h3>
+                <h3>{t('patient.findCompatibleDonors')}</h3>
                 <button className="btn btn-outline" onClick={findMatches} style={{ marginBottom: '1rem' }}>
-                    Search for Matches
+                    {t('patient.searchMatches')}
                 </button>
                 {matches.length > 0 && (
                     <div className="matches-list">
@@ -458,9 +701,9 @@ const DonorMatching = () => {
                                 <div style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
                                     <div>
                                         <h4 style={{ margin: 0, fontSize: '1.1rem', color: 'var(--primary-700)' }}>
-                                            Blood Group: {match.blood_group}
+                                            {t('patient.bloodType')}: {match.blood_group}
                                         </h4>
-                                        <span style={{ fontSize: '0.85rem', color: 'var(--gray-500)' }}>Age: {match.age} years ({match.age_difference} yr gap)</span>
+                                        <span style={{ fontSize: '0.85rem', color: 'var(--gray-500)' }}>{t('patient.age')}: {match.age} ({match.age_difference} {t('patient.yearsGap')})</span>
                                     </div>
                                     <div style={{ textAlign: 'right' }}>
                                         <div className="score-badge" style={{
@@ -471,13 +714,13 @@ const DonorMatching = () => {
                                             fontWeight: 'bold',
                                             display: 'inline-block'
                                         }}>
-                                            {match.compatibility_score}% Compatible
+                                            {match.compatibility_score}% {t('patient.compatible')}
                                         </div>
                                     </div>
                                 </div>
 
                                 <div className="match-reasons" style={{ background: '#f8fafc', padding: '1rem', borderRadius: '0.5rem', width: '100%' }}>
-                                    <h5 style={{ margin: '0 0 0.5rem 0', fontSize: '0.9rem', color: 'var(--gray-600)' }}>Compatibility Breakdown:</h5>
+                                    <h5 style={{ margin: '0 0 0.5rem 0', fontSize: '0.9rem', color: 'var(--gray-600)' }}>{t('patient.compatibilityBreakdown')}:</h5>
                                     {match.match_reason && match.match_reason.map((reason, rIdx) => (
                                         <div key={rIdx} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem', fontSize: '0.9rem', color: '#475569' }}>
                                             <FaCheckCircle style={{ color: 'var(--success-500)', flexShrink: 0 }} />
@@ -496,6 +739,7 @@ const DonorMatching = () => {
 
 // Medicine Search Component - Find medicines and medical stores
 const PharmacyMedicine = () => {
+    const { t } = useTranslation();
     const [medicals, setMedicals] = useState([]);
     const [searchQuery, setSearchQuery] = useState('');
     const [searchResults, setSearchResults] = useState(null);
@@ -566,32 +810,32 @@ const PharmacyMedicine = () => {
     return (
         <div className="page-content animate-fadeIn">
             <div className="page-header">
-                <h1><FaPills /> Find CKD Medicines</h1>
-                <p>Search medicines and find medical stores that have them</p>
+                <h1><FaPills /> {t('patient.findMedicines')}</h1>
+                <p>{t('patient.findMedicinesDesc')}</p>
             </div>
 
             {/* Search Section */}
             <div className="card" style={{ marginBottom: '2rem', background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', color: 'white' }}>
-                <h3 style={{ marginBottom: '1rem', color: 'white' }}>🔍 Search Medicine</h3>
+                <h3 style={{ marginBottom: '1rem', color: 'white' }}>🔍 {t('patient.searchMedicine')}</h3>
                 <div className="flex gap-3" style={{ flexWrap: 'wrap' }}>
                     <input
                         type="text"
                         className="form-input"
-                        placeholder="Enter medicine name (e.g., Lisinopril, Losartan...)"
+                        placeholder={t('patient.enterMedicineName')}
                         value={searchQuery}
                         onChange={e => setSearchQuery(e.target.value)}
                         onKeyPress={e => e.key === 'Enter' && handleSearch()}
                         style={{ flex: '1', minWidth: '250px', background: 'rgba(255,255,255,0.95)', color: '#333' }}
                     />
                     <button className="btn" onClick={handleSearch} disabled={searching} style={{ background: 'white', color: '#764ba2', fontWeight: '600' }}>
-                        {searching ? <FaSpinner className="spin" /> : 'Search'}
+                        {searching ? <FaSpinner className="spin" /> : t('patient.search')}
                     </button>
-                    {searchResults && <button className="btn" onClick={clearSearch} style={{ background: 'rgba(255,255,255,0.3)', color: 'white' }}>Clear</button>}
+                    {searchResults && <button className="btn" onClick={clearSearch} style={{ background: 'rgba(255,255,255,0.3)', color: 'white' }}>{t('patient.clear')}</button>}
                 </div>
 
                 {/* Quick Search Pills */}
                 <div style={{ marginTop: '1rem' }}>
-                    <p style={{ fontSize: '0.85rem', marginBottom: '0.5rem', opacity: 0.9 }}>Quick Search:</p>
+                    <p style={{ fontSize: '0.85rem', marginBottom: '0.5rem', opacity: 0.9 }}>{t('patient.quickSearch')}:</p>
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
                         {commonMedicines.map((med, idx) => (
                             <button
@@ -722,6 +966,7 @@ const PharmacyMedicine = () => {
 
 // AI Recommendations Component (Gemini-powered)
 const AIRecommendations = () => {
+    const { t } = useTranslation();
     const [recommendations, setRecommendations] = useState(null);
     const [loading, setLoading] = useState(false);
     const [question, setQuestion] = useState('');
@@ -813,36 +1058,36 @@ const AIRecommendations = () => {
     return (
         <div className="page-content animate-fadeIn">
             <div className="page-header">
-                <h1>🤖 AI Health Recommendations</h1>
-                <p>Personalized treatment and lifestyle recommendations powered by Google Gemini AI</p>
+                <h1>🤖 {t('patient.recommendations.aiTitle')}</h1>
+                <p>{t('patient.recommendations.aiSubtitle')}</p>
             </div>
 
             {/* Quick Question Box */}
             <div className="card" style={{ marginBottom: '2rem', background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', color: 'white' }}>
-                <h3 style={{ marginBottom: '1rem', color: 'white' }}>💬 Ask AI About Your Health & Medicines</h3>
+                <h3 style={{ marginBottom: '1rem', color: 'white' }}>{t('patient.recommendations.askTitle')}</h3>
                 <p style={{ marginBottom: '1rem', opacity: 0.9, fontSize: '0.9rem' }}>
-                    Get personalized health advice including medicine recommendations based on your profile
+                    {t('patient.recommendations.askSubtitle')}
                 </p>
                 <div className="flex gap-3" style={{ flexWrap: 'wrap' }}>
                     <input
                         type="text"
                         className="form-input"
-                        placeholder="e.g., What medicines help with CKD? What should I avoid with high creatinine?"
+                        placeholder={t('patient.recommendations.askPlaceholder')}
                         value={question}
                         onChange={e => setQuestion(e.target.value)}
                         onKeyPress={e => e.key === 'Enter' && askQuestion()}
                         style={{ flex: '1', minWidth: '200px', background: 'rgba(255,255,255,0.95)', color: '#333' }}
                     />
                     <button className="btn" onClick={askQuestion} disabled={askingQuestion} style={{ background: 'white', color: '#764ba2', fontWeight: '600' }}>
-                        {askingQuestion ? <FaSpinner className="spin" /> : '🤖 Ask AI'}
+                        {askingQuestion ? <FaSpinner className="spin" /> : t('patient.recommendations.askButton')}
                     </button>
                 </div>
                 {quickAdvice && (
                     <div style={{ marginTop: '1.5rem', padding: '1.5rem', background: 'rgba(255,255,255,0.98)', borderRadius: '0.75rem', color: '#333', boxShadow: '0 4px 15px rgba(0,0,0,0.1)' }}>
-                        <h4 style={{ marginBottom: '0.75rem', color: '#764ba2' }}>💊 AI Health & Medicine Advice</h4>
-                        <div style={{ whiteSpace: 'pre-wrap', lineHeight: '1.8', fontSize: '0.95rem' }}>{quickAdvice}</div>
+                        <h4 style={{ marginBottom: '0.75rem', color: '#764ba2' }}>{t('patient.recommendations.adviceTitle')}</h4>
+                        <div style={{ whiteSpace: 'pre-wrap', lineHeight: '1.8', fontSize: '0.95rem' }}><DynamicText text={quickAdvice} /></div>
                         <div style={{ marginTop: '1rem', padding: '0.75rem', background: '#fff3cd', borderRadius: '0.5rem', fontSize: '0.85rem' }}>
-                            ⚠️ <strong>Disclaimer:</strong> This AI-generated advice is for informational purposes only. Always consult your doctor before taking any medication or making health decisions.
+                            ⚠️ <strong>{t('patient.recommendations.disclaimer')}</strong>
                         </div>
                     </div>
                 )}
@@ -850,18 +1095,18 @@ const AIRecommendations = () => {
 
             {/* Get Personalized Recommendations */}
             <div className="card" style={{ marginBottom: '2rem' }}>
-                <h3 style={{ marginBottom: '1rem' }}>📋 Personalized CKD Care Plan</h3>
+                <h3 style={{ marginBottom: '1rem' }}>{t('patient.recommendations.carePlanTitle')}</h3>
                 {lastPrediction ? (
                     <div>
-                        <p style={{ marginBottom: '1rem' }}>Based on your last CKD test ({lastPrediction.prediction?.result === 'ckd' ? 'CKD Detected' : 'No CKD'}, {lastPrediction.prediction?.risk_level} Risk)</p>
+                        <p style={{ marginBottom: '1rem' }}>{t('patient.recommendations.basedOn')} ({lastPrediction.prediction?.result === 'ckd' ? t('patient.ckdDetected') : t('patient.noCkdDetected')}, {t('patient.riskLevel')}: {lastPrediction.prediction?.risk_level})</p>
                         <button className="btn btn-primary btn-lg" onClick={getAIRecommendations} disabled={loading}>
-                            {loading ? <><FaSpinner className="spin" /> Generating...</> : '🔮 Get AI Recommendations'}
+                            {loading ? <><FaSpinner className="spin" /> {t('patient.recommendations.generating')}</> : '🔮 ' + t('patient.aiRecommendations')}
                         </button>
                     </div>
                 ) : (
                     <div className="empty-state">
-                        <p>Take a CKD test first to get personalized AI recommendations</p>
-                        <Link to="/patient" className="btn btn-primary">Take CKD Test</Link>
+                        <p>{t('patient.recommendations.takeTestFirst')}</p>
+                        <Link to="/patient" className="btn btn-primary">{t('patient.recommendations.takeTestButton')}</Link>
                     </div>
                 )}
             </div>
@@ -871,36 +1116,36 @@ const AIRecommendations = () => {
                 <div className="recommendations-display">
                     {/* Summary */}
                     <div className="card" style={{ marginBottom: '1rem', borderLeft: '4px solid var(--primary-500)' }}>
-                        <h3>📌 Summary</h3>
-                        <p style={{ fontSize: '1.1rem', lineHeight: '1.6' }}>{recommendations.summary}</p>
-                        <p><strong>Estimated CKD Stage:</strong> {recommendations.ckd_stage_assessment}</p>
+                        <h3>📌 {t('patient.recommendations.summary')}</h3>
+                        <p style={{ fontSize: '1.1rem', lineHeight: '1.6' }}><DynamicText text={recommendations.summary} /></p>
+                        <p><strong>{t('patient.recommendations.estimatedStage')}:</strong> <DynamicText text={recommendations.ckd_stage_assessment} /></p>
                     </div>
 
                     {/* Diet Recommendations */}
                     {recommendations.diet_recommendations && (
                         <div className="card" style={{ marginBottom: '1rem' }}>
-                            <h3>🥗 Diet Recommendations</h3>
+                            <h3>🥗 {t('patient.recommendations.dietTitle')}</h3>
                             <div className="grid grid-cols-2 gap-4" style={{ marginTop: '1rem' }}>
                                 <div>
-                                    <strong>Daily Calories:</strong> {recommendations.diet_recommendations.daily_calories}
+                                    <strong>{t('patient.recommendations.dailyCalories')}:</strong> <DynamicText text={String(recommendations.diet_recommendations.daily_calories)} />
                                 </div>
                                 <div>
-                                    <strong>Protein Intake:</strong> {recommendations.diet_recommendations.protein_intake}
+                                    <strong>{t('patient.recommendations.proteinIntake')}:</strong> <DynamicText text={String(recommendations.diet_recommendations.protein_intake)} />
                                 </div>
                                 <div>
-                                    <strong>Sodium Limit:</strong> {recommendations.diet_recommendations.sodium_limit}
+                                    <strong>{t('patient.recommendations.sodiumLimit')}:</strong> <DynamicText text={String(recommendations.diet_recommendations.sodium_limit)} />
                                 </div>
                                 <div>
-                                    <strong>Fluid Intake:</strong> {recommendations.diet_recommendations.fluid_intake}
+                                    <strong>{t('patient.recommendations.fluidIntake')}:</strong> <DynamicText text={String(recommendations.diet_recommendations.fluid_intake)} />
                                 </div>
                             </div>
                             <div style={{ marginTop: '1rem' }}>
-                                <h4 style={{ color: 'var(--success-600)' }}>✅ Foods to Eat</h4>
-                                <ul>{recommendations.diet_recommendations.foods_to_eat?.map((f, i) => <li key={i}>{f}</li>)}</ul>
+                                <h4 style={{ color: 'var(--success-600)' }}>✅ {t('patient.recommendations.foodsToEat')}</h4>
+                                <ul>{recommendations.diet_recommendations.foods_to_eat?.map((f, i) => <li key={i}><DynamicText text={f} /></li>)}</ul>
                             </div>
                             <div style={{ marginTop: '1rem' }}>
-                                <h4 style={{ color: 'var(--error-600)' }}>❌ Foods to Avoid</h4>
-                                <ul>{recommendations.diet_recommendations.foods_to_avoid?.map((f, i) => <li key={i}>{f}</li>)}</ul>
+                                <h4 style={{ color: 'var(--error-600)' }}>❌ {t('patient.recommendations.foodsToAvoid')}</h4>
+                                <ul>{recommendations.diet_recommendations.foods_to_avoid?.map((f, i) => <li key={i}><DynamicText text={f} /></li>)}</ul>
                             </div>
                         </div>
                     )}
@@ -908,40 +1153,40 @@ const AIRecommendations = () => {
                     {/* Lifestyle Recommendations */}
                     {recommendations.lifestyle_recommendations && (
                         <div className="card" style={{ marginBottom: '1rem' }}>
-                            <h3>🏃 Lifestyle Recommendations</h3>
+                            <h3>🏃 {t('patient.recommendations.lifestyleTitle')}</h3>
                             <div style={{ marginTop: '1rem' }}>
-                                <h4>Exercise</h4>
-                                <p><strong>Type:</strong> {recommendations.lifestyle_recommendations.exercise?.type}</p>
-                                <p><strong>Duration:</strong> {recommendations.lifestyle_recommendations.exercise?.duration}</p>
-                                <p><strong>Precautions:</strong> {recommendations.lifestyle_recommendations.exercise?.precautions}</p>
+                                <h4>{t('patient.recommendations.exercise')}</h4>
+                                <p><strong>{t('patient.recommendations.type')}:</strong> <DynamicText text={recommendations.lifestyle_recommendations.exercise?.type} /></p>
+                                <p><strong>{t('patient.recommendations.duration')}:</strong> <DynamicText text={recommendations.lifestyle_recommendations.exercise?.duration} /></p>
+                                <p><strong>{t('patient.recommendations.precautions')}:</strong> <DynamicText text={recommendations.lifestyle_recommendations.exercise?.precautions} /></p>
                             </div>
-                            <p style={{ marginTop: '1rem' }}><strong>Sleep:</strong> {recommendations.lifestyle_recommendations.sleep}</p>
-                            <p><strong>Stress Management:</strong> {recommendations.lifestyle_recommendations.stress_management}</p>
+                            <p style={{ marginTop: '1rem' }}><strong>{t('patient.recommendations.sleep')}:</strong> <DynamicText text={recommendations.lifestyle_recommendations.sleep} /></p>
+                            <p><strong>{t('patient.recommendations.stressManagement')}:</strong> <DynamicText text={recommendations.lifestyle_recommendations.stress_management} /></p>
                         </div>
                     )}
 
                     {/* Warning Signs */}
                     {recommendations.warning_signs && (
                         <div className="card" style={{ marginBottom: '1rem', borderLeft: '4px solid var(--error-500)' }}>
-                            <h3>⚠️ Warning Signs to Watch</h3>
-                            <ul>{recommendations.warning_signs.map((sign, i) => <li key={i} style={{ color: 'var(--error-600)' }}>{sign}</li>)}</ul>
+                            <h3>⚠️ {t('patient.recommendations.warningSigns')}</h3>
+                            <ul>{recommendations.warning_signs.map((sign, i) => <li key={i} style={{ color: 'var(--error-600)' }}><DynamicText text={sign} /></li>)}</ul>
                         </div>
                     )}
 
                     {/* Personalized Tips */}
                     {recommendations.personalized_tips && (
                         <div className="card" style={{ marginBottom: '1rem', background: 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)' }}>
-                            <h3>💡 Personalized Tips for You</h3>
+                            <h3>💡 {t('patient.recommendations.personalizedTips')}</h3>
                             <ul style={{ marginTop: '0.5rem' }}>
                                 {recommendations.personalized_tips.map((tip, i) => (
-                                    <li key={i} style={{ marginBottom: '0.5rem', padding: '0.5rem', background: 'white', borderRadius: '0.5rem' }}>{tip}</li>
+                                    <li key={i} style={{ marginBottom: '0.5rem', padding: '0.5rem', background: 'white', borderRadius: '0.5rem' }}><DynamicText text={tip} /></li>
                                 ))}
                             </ul>
                         </div>
                     )}
 
                     <div style={{ textAlign: 'center', marginTop: '1rem', padding: '1rem', background: '#fff3cd', borderRadius: '0.5rem' }}>
-                        <strong>⚠️ Disclaimer:</strong> These are AI-generated recommendations for informational purposes only. Always consult your healthcare provider before making any changes to your treatment or lifestyle.
+                        <strong>⚠️ {t('patient.recommendations.disclaimer')}</strong>
                     </div>
                 </div>
             )}
@@ -1065,6 +1310,7 @@ const BookAppointment = () => {
 
 // Main Patient Dashboard
 const PatientDashboard = () => {
+    const { t } = useTranslation();
     const { user, logout } = useAuth();
     const navigate = useNavigate();
 
@@ -1078,28 +1324,31 @@ const PatientDashboard = () => {
             <aside className="sidebar">
                 <div className="sidebar-header">
                     <FaHeartbeat className="sidebar-logo" />
-                    <span>CKD System</span>
+                    <span>{t('landing.brand')}</span>
                 </div>
                 <nav className="sidebar-nav">
-                    <Link to="/patient" className="nav-item"><FaFlask /> CKD Test</Link>
-                    <Link to="/patient/upload-report" className="nav-item">📄 Upload Report</Link>
-                    <Link to="/patient/history" className="nav-item"><FaHistory /> Test History</Link>
-                    <Link to="/patient/ai-recommendations" className="nav-item">🤖 AI Recommendations</Link>
-                    <Link to="/patient/telemedicine" className="nav-item"><FaVideo /> Telemedicine</Link>
-                    <Link to="/patient/donor" className="nav-item"><FaHandHoldingHeart /> Donor Matching</Link>
-                    <Link to="/patient/pharmacy" className="nav-item"><FaPills /> Pharmacy</Link>
-                    <Link to="/patient/appointments" className="nav-item"><FaCalendarAlt /> Appointments</Link>
-                    <Link to="/patient/book" className="nav-item"><FaUserMd /> Book Doctor</Link>
+                    <Link to="/patient" className="nav-item"><FaFlask /> {t('patient.ckdTest')}</Link>
+                    <Link to="/patient/upload-report" className="nav-item">📄 {t('patient.uploadReport')}</Link>
+                    <Link to="/patient/history" className="nav-item"><FaHistory /> {t('patient.testHistory')}</Link>
+                    <Link to="/patient/ai-recommendations" className="nav-item">🤖 {t('patient.aiRecommendations', 'AI Recommendations')}</Link>
+                    <Link to="/patient/telemedicine" className="nav-item"><FaVideo /> {t('patient.telemedicine')}</Link>
+                    <Link to="/patient/donor" className="nav-item"><FaHandHoldingHeart /> {t('patient.donorMatch')}</Link>
+                    <Link to="/patient/pharmacy" className="nav-item"><FaPills /> {t('patient.pharmacy')}</Link>
+                    <Link to="/patient/appointments" className="nav-item"><FaCalendarAlt /> {t('patient.appointments')}</Link>
+                    <Link to="/patient/book" className="nav-item"><FaUserMd /> {t('patient.bookDoctor', 'Book Doctor')}</Link>
                 </nav>
                 <div className="sidebar-footer">
+                    <div className="sidebar-language">
+                        <LanguageSwitcher />
+                    </div>
                     <div className="user-info">
                         <FaUser className="user-avatar" />
                         <div>
                             <span className="user-name">{user?.name}</span>
-                            <span className="user-role">Patient</span>
+                            <span className="user-role">{t('auth.patient')}</span>
                         </div>
                     </div>
-                    <button onClick={handleLogout} className="logout-btn"><FaSignOutAlt /> Logout</button>
+                    <button onClick={handleLogout} className="logout-btn"><FaSignOutAlt /> {t('common.logout')}</button>
                 </div>
             </aside>
 

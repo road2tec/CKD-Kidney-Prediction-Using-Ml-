@@ -6,6 +6,14 @@
     justify-content: center;
     background: linear-gradient(135deg, var(--gray-50), var(--primary-50));
     padding: 2rem;
+    position: relative;
+}
+
+.auth-page .language-switcher {
+    position: absolute;
+    top: 2rem;
+    right: 2rem;
+    z-index: 10;
 }
 
 .auth-container {
@@ -236,7 +244,11 @@
     font-size: 0.8rem;
 }
 
-/* Responsive */
+/* ==========================================
+   AUTH PAGES RESPONSIVE STYLES
+   ========================================== */
+
+/* Tablets */
 @media (max-width: 900px) {
     .auth-container {
         grid-template-columns: 1fr;
@@ -252,12 +264,136 @@
     }
 }
 
-@media (max-width: 480px) {
+/* Mobile devices */
+@media (max-width: 768px) {
     .auth-page {
         padding: 1rem;
+        align-items: flex-start;
+        padding-top: 2rem;
+    }
+
+    .auth-container {
+        max-width: 100%;
+        border-radius: var(--radius-xl);
+        min-height: auto;
+    }
+
+    .auth-right {
+        padding: 1.5rem;
+    }
+
+    .auth-form-container {
+        max-width: 100%;
+    }
+
+    .auth-form-container h1 {
+        font-size: 1.5rem;
+    }
+
+    .auth-subtitle {
+        font-size: 0.9rem;
+    }
+
+    /* Form inputs - prevent zoom on iOS */
+    .form-input {
+        font-size: 16px;
+        padding: 0.75rem 0.875rem;
+        min-height: 48px;
+    }
+
+    .input-with-icon .form-input {
+        padding-left: 2.5rem;
+    }
+
+    .input-icon {
+        left: 0.875rem;
     }
 
     .form-row {
         grid-template-columns: 1fr;
+        gap: 0.75rem;
+    }
+
+    /* Buttons */
+    .btn {
+        min-height: 48px;
+        font-size: 1rem;
+    }
+
+    /* Role info box */
+    .role-info-box {
+        padding: 0.875rem;
+    }
+
+    .role-badge {
+        font-size: 0.8rem;
+    }
+
+    /* Demo credentials */
+    .demo-credentials {
+        padding: 0.875rem;
+        font-size: 0.85rem;
+    }
+
+    /* Footer */
+    .auth-footer {
+        padding-top: 1rem;
+    }
+
+    .auth-footer p {
+        font-size: 0.9rem;
+    }
+}
+
+/* Small mobile */
+@media (max-width: 480px) {
+    .auth-page {
+        padding: 0.75rem;
+        padding-top: 1rem;
+    }
+
+    .auth-container {
+        border-radius: var(--radius-lg);
+    }
+
+    .auth-right {
+        padding: 1.25rem;
+    }
+
+    .auth-form-container h1 {
+        font-size: 1.35rem;
+    }
+
+    .auth-subtitle {
+        font-size: 0.85rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .form-group {
+        margin-bottom: 1rem;
+    }
+
+    .form-label {
+        font-size: 0.8rem;
+    }
+}
+
+/* Extra small devices */
+@media (max-width: 360px) {
+    .auth-right {
+        padding: 1rem;
+    }
+
+    .auth-form-container h1 {
+        font-size: 1.25rem;
+    }
+
+    .role-info-box {
+        padding: 0.75rem;
+    }
+
+    .role-badge {
+        font-size: 0.75rem;
+        padding: 0.375rem 0.75rem;
     }
 }
