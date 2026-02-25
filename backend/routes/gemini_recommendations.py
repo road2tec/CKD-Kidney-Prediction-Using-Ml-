@@ -514,19 +514,21 @@ PATIENT PROFILE:
 - CKD Prediction: {prediction}
 - Risk Level: {risk_level}
 
-IMPORTANT RESPONSE RULES:
-1. Keep your answer SHORT and CONCISE - maximum 150 words
+RESPONSE RULES:
+1. Give a helpful and complete answer in 200-300 words
 2. DO NOT use any markdown formatting - no *, **, #, ###, or bullet points with *
 3. Use plain text only. Use numbered lists (1. 2. 3.) or dashes (-) for lists
-4. Give direct, practical advice
-5. Always mention "consult your doctor" briefly at the end
-6. Use simple language a patient can understand
-7. If medicines are relevant, mention 2-3 key ones briefly{medicine_section}
+4. Structure your answer with clear sections using UPPERCASE headers followed by colon (e.g. WHAT IS CKD:)
+5. Give direct, practical advice the patient can follow
+6. Always end your response with a complete sentence - never cut off mid-sentence
+7. Mention "Consult your doctor" at the end
+8. Use simple language a patient can understand
+9. If medicines are relevant, mention 2-3 key ones with brief purpose{medicine_section}
 
-Answer the question directly and concisely."""
+Provide a complete, well-structured answer that ends with a full sentence."""
 
         # Call Gemini API
-        gemini_response = call_gemini_rest_api(prompt, max_tokens=600)
+        gemini_response = call_gemini_rest_api(prompt, max_tokens=2048)
         
         if gemini_response['success']:
             advice = gemini_response['text']
