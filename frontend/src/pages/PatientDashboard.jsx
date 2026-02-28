@@ -1308,6 +1308,119 @@ const BookAppointment = () => {
     );
 };
 
+// ── Patient Profile Component ─────────────────────────────────────
+const PatientProfile = () => {
+    const { t } = useTranslation();
+    const { getToken, user } = useAuth();
+    const [profile, setProfile] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [editMode, setEditMode] = useState(false);
+    const [saving, setSaving] = useState(false);
+    const [form, setForm] = useState({});
+
+    useEffect(() => { fetchProfile(); }, []);
+
+    const fetchProfile = async () => {
+        try {
+            const res = await axios.get(`${API_URL}/profile`,
+                { headers: { Authorization: `Bearer ${getToken()}` } });
+            if (res.data.success) {
+                setProfile(res.data.profile);
+                setForm({
+                    name: res.data.profile.name || '',
+                    phone: res.data.profile.phone || '',
+                    age: res.data.profile.age || '',
+                    gender: res.data.profile.gender || '',
+                    blood_group: res.data.profile.blood_group || '',
+                    address: res.data.profile.address || '',
+                });
+            }
+        } catch (err) {
+            toast.error('Failed to load profile');
+        } finally { setLoading(false); }
+    };
+
+    const handleSave = async () => {
+        setSaving(true);
+        try {
+            const res = await axios.put(`${API_URL}/profile`, form,
+                { headers: { Authorization: `Bearer ${getToken()}` } });
+            if (res.data.success) {
+                toast.success('Profile updated successfully!');
+                setEditMode(false);
+                fetchProfile();
+            } else {
+                toast.error(res.data.message || 'Update failed');
+            }
+        } catch (err) {
+            toast.error('Failed to update profile');
+        } finally { setSaving(false); }
+    };
+
+    if (loading) return <div className="loading-overlay"><div className="spinner"></div></div>;
+
+    return (
+        <div className="page-content animate-fadeIn">
+            <div className="page-header">
+                <h1><FaUser /> My Profile</h1>
+                <p>View and update your personal information</p>
+            </div>
+
+            <div className="card" style={{ maxWidth: '700px', margin: '0 auto', padding: '2rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                        <div style={{
+                            width: '64px', height: '64px', borderRadius: '50%',
+                            background: 'linear-gradient(135deg, var(--primary-500), var(--primary-700))',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: '1.75rem'
+                        }}><FaUser /></div>
+                        <div>
+                            <h2 style={{ margin: 0 }}>{profile?.name}</h2>
+                            <span style={{ color: 'var(--gray-500)', fontSize: '0.875rem' }}>{profile?.email}</span>
+                        </div>
+                    </div>
+                    {!editMode ? (
+                        <button className="btn btn-primary" onClick={() => setEditMode(true)}>✏️ Edit Profile</button>
+                    ) : (
+                        <div style={{ display: 'flex', gap: '0.75rem' }}>
+                            <button className="btn btn-outline" onClick={() => setEditMode(false)}>Cancel</button>
+                            <button className="btn btn-primary" onClick={handleSave} disabled={saving}>
+                                {saving ? '⏳ Saving...' : '💾 Save'}
+                            </button>
+                        </div>
+                    )}
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem' }}>
+                    {[{ label: 'Full Name', field: 'name', type: 'text' }, { label: 'Phone', field: 'phone', type: 'tel' }, { label: 'Age', field: 'age', type: 'number' }, { label: 'Gender', field: 'gender', type: 'select', options: ['Male', 'Female', 'Other'] }, { label: 'Blood Group', field: 'blood_group', type: 'select', options: ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'] }, { label: 'Address', field: 'address', type: 'text', full: true }].map(({ label, field, type, options, full }) => (
+                        <div key={field} style={{ gridColumn: full ? '1 / -1' : 'auto' }}>
+                            <label style={{ display: 'block', fontWeight: '600', marginBottom: '0.4rem', color: 'var(--gray-600)', fontSize: '0.875rem' }}>{label}</label>
+                            {!editMode ? (
+                                <div style={{ padding: '0.6rem 0.9rem', background: 'var(--gray-50)', borderRadius: '0.5rem', color: profile?.[field] ? 'var(--gray-800)' : 'var(--gray-400)', border: '1px solid var(--gray-200)' }}>
+                                    {profile?.[field] || '—'}
+                                </div>
+                            ) : type === 'select' ? (
+                                <select className="form-select" value={form[field]} onChange={e => setForm({ ...form, [field]: e.target.value })}>
+                                    <option value="">Select {label}</option>
+                                    {options.map(o => <option key={o} value={o}>{o}</option>)}
+                                </select>
+                            ) : (
+                                <input className="form-input" type={type} value={form[field]} onChange={e => setForm({ ...form, [field]: e.target.value })} placeholder={`Enter ${label}`} />
+                            )}
+                        </div>
+                    ))}
+                </div>
+
+                {profile?.created_at && (
+                    <p style={{ marginTop: '1.5rem', color: 'var(--gray-400)', fontSize: '0.8rem', textAlign: 'right' }}>
+                        Member since: {new Date(profile.created_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
+                    </p>
+                )}
+            </div>
+        </div>
+    );
+};
+
 // Main Patient Dashboard
 const PatientDashboard = () => {
     const { t } = useTranslation();
@@ -1336,6 +1449,7 @@ const PatientDashboard = () => {
                     <Link to="/patient/pharmacy" className="nav-item"><FaPills /> {t('patient.pharmacy')}</Link>
                     <Link to="/patient/appointments" className="nav-item"><FaCalendarAlt /> {t('patient.appointments')}</Link>
                     <Link to="/patient/book" className="nav-item"><FaUserMd /> {t('patient.bookDoctor', 'Book Doctor')}</Link>
+                    <Link to="/patient/profile" className="nav-item"><FaUser /> My Profile</Link>
                 </nav>
                 <div className="sidebar-footer">
                     <div className="sidebar-language">
@@ -1365,6 +1479,7 @@ const PatientDashboard = () => {
                     <Route path="/appointments" element={<MyAppointments />} />
                     <Route path="/book" element={<BookAppointment />} />
                     <Route path="/book/:doctorId" element={<BookAppointment />} />
+                    <Route path="/profile" element={<PatientProfile />} />
                 </Routes>
             </main>
         </div>
