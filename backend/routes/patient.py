@@ -518,3 +518,54 @@ def get_prediction_history():
             "success": False,
             "message": f"Error fetching prediction history: {str(e)}"
         }), 500
+
+
+@patient_bp.route('/profile', methods=['GET'])
+@jwt_required()
+def get_profile():
+    """Get the current patient's full profile"""
+    try:
+        current_user = get_current_user()
+        user = db[COLLECTIONS['users']].find_one(
+            {"_id": ObjectId(current_user['id'])}, {"password": 0}
+        )
+        if not user:
+            return jsonify({"success": False, "message": "User not found"}), 404
+        user['_id'] = str(user['_id'])
+        # Convert any datetime to string
+        for field in ['created_at', 'updated_at']:
+            if field in user and hasattr(user[field], 'isoformat'):
+                user[field] = user[field].isoformat()
+        return jsonify({"success": True, "profile": user}), 200
+    except Exception as e:
+        return jsonify({"success": False, "message": str(e)}), 500
+
+
+@patient_bp.route('/profile', methods=['PUT'])
+@jwt_required()
+def update_profile():
+    """Update the current patient's profile"""
+    try:
+        current_user = get_current_user()
+        data = request.get_json()
+
+        allowed = ['name', 'phone', 'age', 'gender', 'blood_group', 'address']
+        update_fields = {k: data[k] for k in allowed if k in data}
+        if not update_fields:
+            return jsonify({"success": False, "message": "No valid fields to update"}), 400
+
+        update_fields['updated_at'] = datetime.utcnow()
+
+        db[COLLECTIONS['users']].update_one(
+            {"_id": ObjectId(current_user['id'])},
+            {"$set": update_fields}
+        )
+        # Also update patients collection
+        db[COLLECTIONS['patients']].update_one(
+            {"user_id": ObjectId(current_user['id'])},
+            {"$set": update_fields}
+        )
+        return jsonify({"success": True, "message": "Profile updated successfully"}), 200
+    except Exception as e:
+        return jsonify({"success": False, "message": str(e)}), 500
+
